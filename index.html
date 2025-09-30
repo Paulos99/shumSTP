@@ -13,6 +13,7 @@
             --surface-muted: #f7f9f9;
             --shadow: 0 10px 30px rgba(1, 100, 79, 0.12);
             --radius: 14px;
+            --danger: #e53935;
         }
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +21,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100dvh;
             margin: 0;
             background-color: var(--surface);
             color: var(--text-main);
@@ -40,6 +41,7 @@
             color: var(--accent);
             letter-spacing: 0.3px;
             margin-bottom: 8px;
+            font-size: clamp(20px, 3.6vw, 28px);
         }
         #status {
             margin: 20px 0;
@@ -47,13 +49,20 @@
             color: #486267;
         }
         #avg {
-            font-size: 48px;
+            font-size: clamp(28px, 6vw, 48px);
             font-weight: 700;
             color: var(--accent);
             margin: 10px 0 4px 0;
         }
-        #level {
-            font-size: 16px;
+        #avgBefore, #avgAfter {
+            font-size: clamp(22px, 5.5vw, 40px);
+            font-weight: 800;
+            margin: 6px 0 2px 0;
+        }
+        #avgBefore { color: var(--danger); }
+        #avgAfter { color: var(--accent); }
+        #diff {
+            font-size: clamp(18px, 5vw, 32px);
             font-weight: 600;
             color: #6b8488;
             margin: 6px 0 14px 0;
@@ -70,18 +79,16 @@
             border: 1px solid rgba(1, 100, 79, 0.12);
             border-radius: 10px;
             padding: 10px;
+            box-shadow: none;
         }
         #freqCanvas {
             width: 100%;
-            height: 160px;
+            height: 28vh;
+            max-height: 260px;
+            min-height: 140px;
             display: block;
         }
-        #freqInfo {
-            font-size: 12px;
-            color: #6b8488;
-            margin-top: 6px;
-            text-align: center;
-        }
+        
         #avg.highlight {
             font-size: 48px;
             font-weight: bold;
@@ -89,8 +96,8 @@
             color: var(--accent);
         }
         button {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 18px 36px;
+            font-size: clamp(12px, 3.6vw, 29px);
             margin: 5px;
             cursor: pointer;
             border: none;
@@ -164,10 +171,17 @@
             justify-content: center;
         }
         @media (max-width: 600px) {
-            #avg { font-size: 36px; }
-            #avg.highlight { font-size: 34px; }
-            #level { font-size: 14px; }
-            button { width: 100%; }
+            #avg.highlight { font-size: clamp(24px, 6.5vw, 34px); }
+            #app { padding: 18px 14px; }
+            .row { flex-wrap: nowrap; gap: 8px; }
+            button { flex: 1 1 0; }
+        }
+
+        @media (orientation: landscape) and (max-height: 520px) {
+            #freqCanvas { height: 40vh; min-height: 140px; }
+            #app { max-width: 680px; }
+            .row { gap: 6px; }
+            button { padding: 14px 29px; font-size: clamp(11px, 3vw, 24px); }
         }
         .note {
             font-size: 14px;
@@ -178,23 +192,23 @@
 </head>
 <body>
     <div id="app">
-        <h1>Шумомер</h1>
+        <h1>Измерение шума</h1>
         <div id="status">Нажмите "Старт" для доступа к микрофону</div>
         <div id="spectrumWrap">
             <canvas id="freqCanvas"></canvas>
-            <div id="freqInfo">АЧХ: коснитесь или наведите, чтобы увидеть частоту</div>
         </div>
-        <div id="avg">Среднее: -- dB</div>
-        <div id="level">-- dB (мгновенное)</div>
-        <div id="duration">Длительность: 00:00</div>
+        <div id="avgBefore">До: -- dB</div>
+        <div id="avgAfter">После: -- dB</div>
+        <div id="avg" style="display:none">Среднее: -- dB</div>
+        <div id="diff">Разница: -- dB</div>
+        <div id="duration">Длительность: 10 секунд</div>
         <div class="row">
             <button id="toggleBtn">Старт</button>
-            <button id="clearHistoryBtn" disabled>Сбросить историю</button>
+            <button id="resetBtn">Сброс</button>
         </div>
         <select id="deviceList" style="display:none;"></select>
         <div id="history">
-            <h3>История замеров</h3>
-            <ul id="historyList"></ul>
+            
         </div>
     </div>
 
@@ -206,53 +220,57 @@
         let rafId = null;
         let isMeasuring = false;
         let startTimeMs = 0;
-        let sumDb = 0;
-        let countDb = 0;
+        // Энергетическое усреднение для dB
+        let sumRms2 = 0;
+        let countFrames = 0;
         let deviceLabel = '';
-        let history = [];
-        const levelElement = document.getElementById('level');
+        
+        const diffElement = document.getElementById('diff');
         const statusElement = document.getElementById('status');
         const toggleBtn = document.getElementById('toggleBtn');
+        const resetBtn = document.getElementById('resetBtn');
         const deviceList = document.getElementById('deviceList');
         const avgElement = document.getElementById('avg');
+        const avgBeforeEl = document.getElementById('avgBefore');
+        const avgAfterEl = document.getElementById('avgAfter');
         const durationElement = document.getElementById('duration');
-        const historyListEl = document.getElementById('historyList');
-        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const historyListEl = null;
+        const clearHistoryBtn = null;
         const freqCanvas = document.getElementById('freqCanvas');
-        const freqInfo = document.getElementById('freqInfo');
+        
         const freqCtx = freqCanvas.getContext ? freqCanvas.getContext('2d') : null;
         let freqGradient = null;
         let hoverX = null;
         let sampleRate = 48000;
         let currentFftSize = 2048;
-        // Накопление пиков и сохранение итоговой АЧХ пиков
-        let spectrumPeak = null; // Uint8Array (макс значения за время замера)
-        let lastAvgSpectrum = null; // Переиспользуем как итоговая линия (пики)
+        // Два этапа измерения: до/после
+        let measurementPhase = 'before'; // 'before' | 'after'
+        // Медианное сглаживание спектра по окну из 50 кадров
+        const SMOOTH_WINDOW = 50;
+        let spectrumBuffer = [];
+        let currentSmoothed = null;
+        let beforeSmoothed = null;
+        let afterSmoothed = null;
+        let avgBeforeVal = null;
+        let avgAfterVal = null;
+        const measurementLimitSec = 10;
+        let endTimeMs = 0;
 
         // Проверка поддержки getUserMedia
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             statusElement.textContent = 'Ваш браузер не поддерживает доступ к микрофону.';
-            startBtn.disabled = true;
+            toggleBtn.disabled = true;
         }
 
         toggleBtn.addEventListener('click', () => {
             if (!isMeasuring) {
                 startMeter();
-            } else {
-                stopMeter();
             }
         });
-        clearHistoryBtn.addEventListener('click', clearHistory);
+        resetBtn.addEventListener('click', hardReset);
+        
 
-        // История из localStorage
-        try {
-            const saved = localStorage.getItem('noiseMeterHistory');
-            if (saved) {
-                history = JSON.parse(saved);
-                renderHistory();
-                clearHistoryBtn.disabled = history.length === 0;
-            }
-        } catch(e) {}
+        
 
         async function startMeter() {
             try {
@@ -296,8 +314,10 @@
                 // Создаем AudioContext
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser();
-                analyser.fftSize = 2048;
-                analyser.smoothingTimeConstant = 0.7;
+                analyser.fftSize = 4096;
+                analyser.smoothingTimeConstant = 0.5;
+                analyser.minDecibels = -100;
+                analyser.maxDecibels = -20;
                 sampleRate = audioContext.sampleRate || sampleRate;
                 currentFftSize = analyser.fftSize;
 
@@ -307,27 +327,33 @@
                 // Используем AnalyserNode для получения данных
                 processAudio();
 
-                statusElement.textContent = 'Измерение уровня звука...';
-                toggleBtn.textContent = 'Стоп';
-                toggleBtn.classList.add('stop');
-                clearHistoryBtn.disabled = history.length === 0 ? true : false;
+                statusElement.textContent = measurementPhase === 'before' ? 'Измерение ДО...' : 'Измерение ПОСЛЕ...';
+                toggleBtn.disabled = true;
+                
 
                 // Сброс накопителей для нового замера
-                sumDb = 0;
-                countDb = 0;
+                sumRms2 = 0;
+                countFrames = 0;
                 avgElement.textContent = 'Среднее: -- dB';
-                durationElement.textContent = 'Длительность: 00:00';
-                levelElement.textContent = '-- dB';
+                durationElement.textContent = 'Длительность: 10 секунд';
+                diffElement.textContent = 'Разница: -- dB';
                 startTimeMs = Date.now();
+                endTimeMs = startTimeMs + measurementLimitSec * 1000;
                 isMeasuring = true;
                 // Убираем выделение среднего при новом замере
                 avgElement.classList.remove('highlight');
+                // Инициализируем целевую строку средней в зависимости от фазы
+                if (measurementPhase === 'before') {
+                    avgBeforeEl.textContent = 'До: -- dB';
+                } else {
+                    avgAfterEl.textContent = 'После: -- dB';
+                }
                 // Инициализируем канвас спектра под экран
                 initFreqCanvas();
-                // Сброс накопления спектра (фиксация пиков)
-                const bins = analyser.frequencyBinCount;
-                spectrumPeak = new Uint8Array(bins);
-                lastAvgSpectrum = null;
+                // Сброс буфера спектров
+                spectrumBuffer = [];
+                currentSmoothed = null;
+                // Если начинаем ПОСЛЕ, не трогаем avgBefore и beforePeaks
 
                 // Обновляем список устройств при изменении
                 navigator.mediaDevices.addEventListener('devicechange', updateDeviceList);
@@ -359,30 +385,48 @@
                 db = Math.max(db, -100);
                 const displayedDb = Math.min(120, Math.max(0, db + 100)); // 0..120 условных дБ
 
-                // Накопление среднего во время измерения
+                // Энергетическое усреднение и вывод в соответствующую строку (ДО/ПОСЛЕ)
                 if (isMeasuring) {
-                    sumDb += displayedDb;
-                    countDb += 1;
-                    const avg = sumDb / Math.max(1, countDb);
-                    avgElement.textContent = `Среднее: ${avg.toFixed(1)} dB`;
+                    sumRms2 += rms * rms;
+                    countFrames += 1;
+                    const meanRms2 = sumRms2 / Math.max(1, countFrames);
+                    const avgDbFs = meanRms2 > 0 ? 10 * Math.log10(meanRms2) : -100;
+                    const avgDisplayed = Math.min(120, Math.max(0, avgDbFs + 100));
+                    if (measurementPhase === 'before') avgBeforeEl.textContent = `До: ${avgDisplayed.toFixed(1)} dB`;
+                    else avgAfterEl.textContent = `После: ${avgDisplayed.toFixed(1)} dB`;
                     const elapsed = Math.floor((Date.now() - startTimeMs) / 1000);
-                    const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
-                    const ss = String(elapsed % 60).padStart(2, '0');
-                    durationElement.textContent = `Длительность: ${mm}:${ss}`;
-                }
-
-                // Отображаем мгновенный уровень
-                levelElement.textContent = `${displayedDb.toFixed(1)} dB`;
-
-                // Рисуем спектр
-                drawFrequencyResponse(freqArray);
-
-                // Накопление пиков АЧХ
-                if (isMeasuring && spectrumPeak) {
-                    for (let i = 0; i < freqArray.length; i++) {
-                        if (freqArray[i] > spectrumPeak[i]) spectrumPeak[i] = freqArray[i];
+                    const remaining = Math.max(0, measurementLimitSec - elapsed);
+                    durationElement.textContent = `Осталось: ${remaining}`;
+                    if (Date.now() >= endTimeMs) {
+                        stopMeter();
+                        return;
                     }
                 }
+
+                // Обновляем разницу (ПОСЛЕ - ДО) при второй фазе
+                if (measurementPhase === 'after') {
+                    const beforeVal = (avgBeforeVal !== null && !isNaN(avgBeforeVal)) ? avgBeforeVal : null;
+                    const currentMeanRms2 = (sumRms2 + rms * rms) / Math.max(1, countFrames + 1);
+                    const currentAvgDbFs = currentMeanRms2 > 0 ? 10 * Math.log10(currentMeanRms2) : -100;
+                    const currentAvgDisplay = Math.min(120, Math.max(0, currentAvgDbFs + 100));
+                    if (beforeVal !== null) {
+                        const diffDb = currentAvgDisplay - beforeVal;
+                        // Конверсия дБ в мощностное отношение: P2/P1 = 10^(ΔdB/10)
+                        const powerRatio = Math.pow(10, diffDb / 10);
+                        const percent = (powerRatio - 1) * 100;
+                        const sign = percent >= 0 ? '+' : '';
+                        diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
+                    }
+                }
+
+                // Обновление буфера спектров и расчёт медианного профиля
+                if (isMeasuring) {
+                    spectrumBuffer.push(new Uint8Array(freqArray));
+                    if (spectrumBuffer.length > SMOOTH_WINDOW) spectrumBuffer.shift();
+                    currentSmoothed = medianSpectrum(spectrumBuffer);
+                }
+                // Рисуем спектр (сглаженный, если доступен)
+                drawFrequencyResponse(currentSmoothed || freqArray);
 
                 rafId = requestAnimationFrame(updateLevel);
             };
@@ -406,41 +450,95 @@
                 navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList);
             }
             statusElement.textContent = 'Измерение остановлено.';
-            toggleBtn.textContent = 'Старт';
-            toggleBtn.classList.remove('stop');
+            // Определяем следующий шаг для кнопки
+            if (measurementPhase === 'before') {
+                toggleBtn.textContent = 'Старт (после)';
+            } else {
+                toggleBtn.textContent = 'Старт (новый цикл)';
+            }
+            toggleBtn.disabled = false;
             deviceList.style.display = 'none';
 
-            // Итог среднего и сохранение в историю
+            // Итог среднего (энергетическое усреднение)
             if (isMeasuring) {
-                const avg = countDb > 0 ? (sumDb / countDb) : null;
+                const meanRms2 = countFrames > 0 ? (sumRms2 / countFrames) : 0;
+                const avgDbFs = meanRms2 > 0 ? 10 * Math.log10(meanRms2) : -100;
+                const avg = avgDbFs + 100;
                 const durationSec = Math.floor((Date.now() - startTimeMs) / 1000);
                 if (avg !== null) {
-                    avgElement.textContent = `Среднее: ${avg.toFixed(1)} dB`;
-                    // Выделяем среднее значение как ключевое после завершения
-                    avgElement.classList.add('highlight');
+                    // Фиксируем по фазам и показываем крупно соответствующим цветом
+                    if (measurementPhase === 'before') {
+                        avgBeforeVal = Number(avg.toFixed(1));
+                        avgBeforeEl.textContent = `До: ${avgBeforeVal.toFixed(1)} dB`;
+                    } else {
+                        avgAfterVal = Number(avg.toFixed(1));
+                        avgAfterEl.textContent = `После: ${avgAfterVal.toFixed(1)} dB`;
+                        if (avgBeforeVal !== null) {
+                            const diffDb = avgAfterVal - avgBeforeVal;
+                            const powerRatio = Math.pow(10, diffDb / 10);
+                            const percent = (powerRatio - 1) * 100;
+                            const sign = percent >= 0 ? '+' : '';
+                            diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
+                        }
+                    }
                 }
-                // Формируем линию пиков АЧХ для визуализации
-                if (spectrumPeak) {
-                    lastAvgSpectrum = new Uint8Array(spectrumPeak); // копия
+                // Сохраняем сглаженную АЧХ для визуализации по фазам
+                if (currentSmoothed) {
+                    if (measurementPhase === 'before') beforeSmoothed = new Uint8Array(currentSmoothed);
+                    else afterSmoothed = new Uint8Array(currentSmoothed);
                 }
-                // Финальная отрисовка средней АЧХ
+                // Финальная отрисовка сглаженной АЧХ
                 try {
-                    const arr = lastAvgSpectrum || new Uint8Array(1024);
+                    const arr = currentSmoothed || new Uint8Array(1024);
                     drawFrequencyResponse(arr);
                 } catch(e) { console.warn('Не удалось отрисовать финальную АЧХ', e); }
-                const record = {
-                    ts: Date.now(),
-                    avg: avg !== null ? Number(avg.toFixed(1)) : null,
-                    duration: durationSec,
-                    device: deviceLabel
-                };
-                history.unshift(record);
-                saveHistory();
-                renderHistory();
-                clearHistoryBtn.disabled = history.length === 0;
             }
 
             isMeasuring = false;
+            // Переключаем фазу: после первого измерения идём в after, после второго — сбрасываем в before при следующем старте
+            if (measurementPhase === 'before') {
+                measurementPhase = 'after';
+            } else {
+                measurementPhase = 'before';
+            }
+        }
+
+        function hardReset() {
+            // Остановить активные процессы
+            if (isMeasuring) {
+                if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+                try { if (microphone) microphone.disconnect(); } catch(e) {}
+                try { if (audioContext) { audioContext.close(); audioContext = null; } } catch(e) {}
+                try { navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList); } catch(e) {}
+                isMeasuring = false;
+            }
+            // Сброс всех данных
+            beforeSmoothed = null;
+            afterSmoothed = null;
+            spectrumBuffer = [];
+            currentSmoothed = null;
+            avgBeforeVal = null;
+            avgAfterVal = null;
+            sumRms2 = 0;
+            countFrames = 0;
+            startTimeMs = 0;
+            endTimeMs = 0;
+            measurementPhase = 'before';
+            // Сброс UI
+            avgBeforeEl.textContent = 'До: -- dB';
+            avgAfterEl.textContent = 'После: -- dB';
+            diffElement.textContent = 'Разница: -- dB';
+            durationElement.textContent = 'Осталось: 10';
+            statusElement.textContent = 'Готов к измерению. Нажмите «Старт»';
+            toggleBtn.textContent = 'Старт';
+            toggleBtn.classList.remove('stop');
+            // Очистка графика
+            try {
+                const rect = freqCanvas.getBoundingClientRect();
+                freqCtx.fillStyle = '#ffffff';
+                freqCtx.fillRect(0, 0, rect.width, rect.height);
+                drawFrequencyResponse(new Uint8Array(currentFftSize / 2));
+            } catch(e) {}
         }
 
         async function updateDeviceList() {
@@ -511,13 +609,28 @@
             freqGradient.addColorStop(1, 'rgba(1,100,79,0.2)');
         }
 
+        // Подсобные: медиана спектров (используется в процессе измерения)
+        function medianSpectrum(buffer) {
+            if (!buffer.length) return null;
+            const len = buffer[0].length;
+            const out = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                const arr = new Array(buffer.length);
+                for (let k = 0; k < buffer.length; k++) arr[k] = buffer[k][i];
+                arr.sort((a,b) => a-b);
+                const mid = Math.floor(arr.length / 2);
+                out[i] = arr.length % 2 ? arr[mid] : Math.round((arr[mid-1] + arr[mid]) / 2);
+            }
+            return out;
+        }
+
         function drawFrequencyResponse(freqArray) {
             if (!freqCtx) return;
             const rect = freqCanvas.getBoundingClientRect();
             const width = rect.width;
             const height = rect.height;
 
-            // Очистка с легким фейдом
+            // Очистка фона
             freqCtx.fillStyle = '#ffffff';
             freqCtx.fillRect(0, 0, width, height);
 
@@ -528,106 +641,114 @@
             const logMin = Math.log10(minF);
             const logMax = Math.log10(maxF);
 
-            // Рисуем сетку и метки частот с рисками
+            // Рисуем только сетку сейчас, подписи нанесём ПОСЛЕ графиков
             const ticks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
-            freqCtx.strokeStyle = 'rgba(1,100,79,0.10)';
-            freqCtx.lineWidth = 1;
-            freqCtx.fillStyle = '#6b8488';
-            freqCtx.font = '12px Arial';
+            const tickPositions = [];
+            // Более выразительная сетка
+            freqCtx.strokeStyle = 'rgba(1,100,79,0.18)';
+            freqCtx.lineWidth = 1.5;
             ticks.forEach(f => {
                 if (f > maxF) return;
                 const x = ((Math.log10(f) - logMin) / (logMax - logMin)) * width;
+                tickPositions.push({ x, f });
                 // вертикальная линия сетки
                 freqCtx.beginPath();
                 freqCtx.moveTo(x, 0);
                 freqCtx.lineTo(x, height);
                 freqCtx.stroke();
-                // риска снизу
-                freqCtx.beginPath();
-                freqCtx.moveTo(x, height - 8);
-                freqCtx.lineTo(x, height);
-                freqCtx.stroke();
-                // подпись
-                const label = f >= 1000 ? `${(f/1000).toFixed(f===1000||f===2000||f===5000||f===10000||f===20000?0:1)}k` : `${f}`;
-                const textW = freqCtx.measureText(label).width;
-                const textX = Math.min(Math.max(0, x - textW / 2), width - textW);
-                freqCtx.fillText(label, textX, height - 10);
             });
 
-            // Столбики (сэмплируем по лог-шкале)
-            const columns = Math.min(96, Math.floor(width / 3));
-            const colW = Math.max(2, Math.floor(width / columns) - 1);
+            // Столбики (сэмплируем по лог-шкале) — цвет по фазе
+            const columns = Math.min(140, Math.floor(width / 2.6));
+            const colW = Math.max(2.5, Math.floor(width / columns) - 1);
+            const liveColor = (isMeasuring && measurementPhase === 'after') ? 'rgba(1,100,79,0.8)' : 'rgba(229,57,53,0.8)';
             for (let c = 0; c < columns; c++) {
                 const t = c / (columns - 1);
                 const logF = logMin + t * (logMax - logMin);
                 const f = Math.pow(10, logF);
-                const bin = Math.min(bins - 1, Math.max(0, Math.round(f / (sampleRate / (currentFftSize || 2048)) )));
-                const v = freqArray[bin] / 255; // 0..1
-                const h = v * (height - 6);
+                const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
+                // Поднятие видимости ВЧ: легкий наклон и степень
+                let v = freqArray[bin] / 255; // 0..1
+                v = Math.pow(v, 0.85);
+                const hfGain = 0.85 + 0.3 * t; // больше к ВЧ
+                const vDraw = Math.min(1, v * hfGain);
+                const h = vDraw * (height - 6);
                 const x = Math.floor(c * (width / columns));
                 const y = height - h;
-                freqCtx.fillStyle = freqGradient || 'rgba(1,100,79,0.8)';
+                freqCtx.fillStyle = liveColor;
                 freqCtx.fillRect(x, y, colW, h);
             }
 
-            // Линия средней АЧХ после остановки измерения
-            if (!isMeasuring && lastAvgSpectrum && lastAvgSpectrum.length === bins) {
-                freqCtx.lineWidth = 2;
-                freqCtx.strokeStyle = '#01644f';
+            // Линия АЧХ ДО (красная) если есть
+            if (beforeSmoothed && beforeSmoothed.length === bins) {
+                freqCtx.lineWidth = 2.5;
+                freqCtx.strokeStyle = '#e53935';
                 freqCtx.beginPath();
                 let started = false;
                 for (let c = 0; c < width; c++) {
                     const t = c / (width - 1);
                     const logF = logMin + t * (logMax - logMin);
                     const f = Math.pow(10, logF);
-                    const bin = Math.min(bins - 1, Math.max(0, Math.round(f / (sampleRate / (currentFftSize || 2048)) )));
-                    const v = lastAvgSpectrum[bin] / 255; // 0..1
-                    const h = v * (height - 6);
+                    const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
+                    let v = beforeSmoothed[bin] / 255;
+                    v = Math.pow(v, 0.85);
+                    const hfGain = 0.85 + 0.3 * t;
+                    const vDraw = Math.min(1, v * hfGain);
+                    const h = vDraw * (height - 6);
                     const y = height - h;
-                    if (!started) { freqCtx.moveTo(c, y); started = true; }
-                    else { freqCtx.lineTo(c, y); }
+                    if (!started) { freqCtx.moveTo(c, y); started = true; } else { freqCtx.lineTo(c, y); }
+                }
+                freqCtx.stroke();
+            }
+            // Линия АЧХ ПОСЛЕ (зелёная) если есть
+            if (afterSmoothed && afterSmoothed.length === bins) {
+                freqCtx.lineWidth = 2.5;
+                freqCtx.strokeStyle = '#01644f';
+                freqCtx.beginPath();
+                let started2 = false;
+                for (let c = 0; c < width; c++) {
+                    const t = c / (width - 1);
+                    const logF = logMin + t * (logMax - logMin);
+                    const f = Math.pow(10, logF);
+                    const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
+                    let v = afterSmoothed[bin] / 255;
+                    v = Math.pow(v, 0.85);
+                    const hfGain = 0.85 + 0.3 * t;
+                    const vDraw = Math.min(1, v * hfGain);
+                    const h = vDraw * (height - 6);
+                    const y = height - h;
+                    if (!started2) { freqCtx.moveTo(c, y); started2 = true; } else { freqCtx.lineTo(c, y); }
                 }
                 freqCtx.stroke();
             }
 
-            // Ховер-индикатор
-            if (hoverX !== null) {
-                const t = hoverX / width;
-                const logF = logMin + t * (logMax - logMin);
-                const f = Math.pow(10, logF);
-                const bin = Math.min(bins - 1, Math.max(0, Math.round(f / (sampleRate / (analyser.fftSize)) )));
-                const val = freqArray[bin];
-                freqCtx.fillStyle = 'rgba(1, 100, 79, 0.15)';
-                freqCtx.fillRect(Math.max(0, hoverX - 8), 0, 16, height);
-                freqCtx.strokeStyle = 'rgba(1,100,79,0.6)';
+            // Теперь наносим риски и подписи поверх графиков
+            freqCtx.fillStyle = '#6b8488';
+            freqCtx.font = '12px Arial';
+            tickPositions.forEach(tp => {
+                const x = tp.x;
+                // риска снизу
+                freqCtx.strokeStyle = 'rgba(1,100,79,0.25)';
                 freqCtx.beginPath();
-                freqCtx.moveTo(hoverX, 0);
-                freqCtx.lineTo(hoverX, height);
+                freqCtx.moveTo(x, height - 8);
+                freqCtx.lineTo(x, height);
                 freqCtx.stroke();
-                freqInfo.textContent = `АЧХ: ${formatFreq(f)} • ${((val/255)*120).toFixed(0)} dB`;
-            } else {
-                freqInfo.textContent = 'АЧХ: коснитесь или наведите, чтобы увидеть частоту';
-            }
+                // подпись
+                const f = tp.f;
+                const label = f >= 1000 ? `${(f/1000).toFixed(f===1000||f===2000||f===5000||f===10000||f===20000?0:1)}k` : `${f}`;
+                const textW = freqCtx.measureText(label).width;
+                const textX = Math.min(Math.max(0, x - textW / 2), width - textW);
+                freqCtx.fillText(label, textX, height - 10);
+            });
+
+            // Подсказки по ховеру отключены по требованию
         }
 
-        function formatFreq(f) {
-            if (f >= 1000) return `${(f/1000).toFixed(2)} кГц`;
-            return `${Math.round(f)} Гц`;
-        }
+        
 
         // Интерактивность: ховер/тач
         if (freqCanvas) {
-            const updateHover = (clientX) => {
-                const rect = freqCanvas.getBoundingClientRect();
-                hoverX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-            };
-            freqCanvas.addEventListener('mousemove', (e) => updateHover(e.clientX));
-            freqCanvas.addEventListener('mouseleave', () => { hoverX = null; });
-            freqCanvas.addEventListener('touchstart', (e) => { if (e.touches[0]) updateHover(e.touches[0].clientX); }, { passive: true });
-            freqCanvas.addEventListener('touchmove', (e) => { if (e.touches[0]) updateHover(e.touches[0].clientX); }, { passive: true });
-            freqCanvas.addEventListener('touchend', () => { hoverX = null; });
             window.addEventListener('resize', () => { initFreqCanvas(); });
-            // Первичная настройка
             setTimeout(initFreqCanvas, 0);
         }
     </script>
