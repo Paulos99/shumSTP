@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Онлайн шумомер</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #app {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        #status {
+            margin: 20px 0;
+            font-size: 18px;
+            color: #555;
+        }
+        #level {
+            font-size: 60px;
+            font-weight: bold;
+            color: #333;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #deviceList {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+        }
+        .note {
+            font-size: 14px;
+            color: #888;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Онлайн шумомер</h1>
+        <div id="status">Нажмите "Начать" для доступа к микрофону</div>
+        <div id="level">-- dB</div>
+        <button id="startBtn">Начать</button>
+        <button id="stopBtn" disabled>Остановить</button>
+        <select id="deviceList" style="display:none;"></select>
+        <div class="note">Примечание: для использования Bluetooth-микрофона подключите его к устройству и выберите в списке устройств (если доступно).</div>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let javascriptNode = null;
+        let rafId = null;
+        const levelElement = document.getElementById('level');
+        const statusElement = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const deviceList = document.getElementById('deviceList');
+
+        // Проверка поддержки getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            statusElement.textContent = 'Ваш браузер не поддерживает доступ к микрофону.';
+            startBtn.disabled = true;
+        }
+
+        startBtn.addEventListener('click', startMeter);
+        stopBtn.addEventListener('click', stopMeter);
+
+        async function startMeter() {
+            try {
+                statusElement.textContent = 'Запрашиваем доступ к микрофону...';
+
+                // Получаем список устройств ввода
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputDevices = devices.filter(device => device.kind === 'audioinput');
+
+                if (audioInputDevices.length === 0) {
+                    throw new Error('Аудиоустройства ввода не найдены.');
+                }
+
+                // Если есть несколько устройств, показываем выбор
+                if (audioInputDevices.length > 1) {
+                    deviceList.innerHTML = '';
+                    audioInputDevices.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.textContent = device.label || `Микрофон ${device.deviceId.substring(0, 5)}`;
+                        deviceList.appendChild(option);
+                    });
+                    deviceList.style.display = 'block';
+                } else {
+                    deviceList.style.display = 'none';
+                }
+
+                const selectedDeviceId = deviceList.value || undefined;
+
+                // Запрашиваем доступ к микрофону
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                // Создаем AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+
+                // Используем AnalyserNode для получения данных
+                processAudio();
+
+                statusElement.textContent = 'Измерение уровня звука...';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+
+                // Обновляем список устройств при изменении
+                navigator.mediaDevices.addEventListener('devicechange', updateDeviceList);
+            } catch (err) {
+                console.error('Ошибка:', err);
+                statusElement.textContent = `Ошибка: ${err.message || 'Не удалось получить доступ к микрофону.'}`;
+            }
+        }
+
+        function processAudio() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            const updateLevel = () => {
+                analyser.getByteTimeDomainData(dataArray);
+
+                // Вычисляем RMS (среднеквадратичное значение)
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const sample = (dataArray[i] - 128) / 128;
+                    sum += sample * sample;
+                }
+                const rms = Math.sqrt(sum / bufferLength);
+
+                // Преобразуем в децибелы
+                let db = rms > 0 ? 20 * Math.log10(rms) : -100;
+                // Ограничиваем минимальное значение
+                db = Math.max(db, -100);
+
+                // Отображаем уровень
+                levelElement.textContent = `${db.toFixed(1)} dB`;
+
+                rafId = requestAnimationFrame(updateLevel);
+            };
+
+            updateLevel();
+        }
+
+        function stopMeter() {
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            if (microphone) {
+                microphone.disconnect();
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            if (navigator.mediaDevices) {
+                navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList);
+            }
+            levelElement.textContent = '-- dB';
+            statusElement.textContent = 'Измерение остановлено.';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            deviceList.style.display = 'none';
+        }
+
+        async function updateDeviceList() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputDevices = devices.filter(device => device.kind === 'audioinput');
+
+                deviceList.innerHTML = '';
+                audioInputDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Микрофон ${device.deviceId.substring(0, 5)}`;
+                    deviceList.appendChild(option);
+                });
+            } catch (err) {
+                console.error('Ошибка обновления списка устройств:', err);
+            }
+        }
+
+        // Обработка выбора устройства
+        deviceList.addEventListener('change', async () => {
+            // Перезапускаем с выбранным устройством
+            stopMeter();
+            setTimeout(startMeter, 100);
+        });
+    </script>
+</body>
+</html>
