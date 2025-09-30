@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Онлайн шумомер</title>
     <style>
+        :root {
+            --accent: #01644f;
+            --accent-dark: #014d3d;
+            --text-main: #1f2a2e;
+            --surface: #ffffff;
+            --surface-muted: #f7f9f9;
+            --shadow: 0 10px 30px rgba(1, 100, 79, 0.12);
+            --radius: 14px;
+        }
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -13,35 +22,46 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background-color: var(--surface);
+            color: var(--text-main);
         }
         #app {
             text-align: center;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 24px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             width: 90%;
-            max-width: 500px;
+            max-width: 520px;
+            border: 1px solid rgba(1, 100, 79, 0.08);
         }
         h1 {
             margin-top: 0;
+            color: var(--accent);
+            letter-spacing: 0.3px;
+            margin-bottom: 8px;
         }
         #status {
             margin: 20px 0;
             font-size: 18px;
-            color: #555;
+            color: #486267;
         }
         #level {
             font-size: 60px;
             font-weight: bold;
-            color: #333;
+            color: #233538;
             margin: 20px 0;
         }
         #avg, #duration {
             font-size: 18px;
-            color: #333;
+            color: #233538;
             margin: 6px 0;
+        }
+        #avg.highlight {
+            font-size: 48px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: var(--accent);
         }
         button {
             padding: 10px 20px;
@@ -49,21 +69,40 @@
             margin: 5px;
             cursor: pointer;
             border: none;
-            border-radius: 5px;
-            background-color: #007bff;
-            color: white;
+            border-radius: 9px;
+            background-color: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 6px 16px rgba(1, 100, 79, 0.18);
+            transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--accent-dark);
+            box-shadow: 0 10px 22px rgba(1, 100, 79, 0.22);
+            transform: translateY(-1px);
         }
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
         }
+        #stopBtn {
+            background: linear-gradient(0deg, rgba(1,100,79,0.08), rgba(1,100,79,0.08)), #ffffff;
+            color: var(--accent);
+            border: 1px solid rgba(1, 100, 79, 0.28);
+        }
+        #stopBtn:hover { background: #f2fbf8; }
+        #clearHistoryBtn { background-color: #2c3e40; }
+        #clearHistoryBtn:hover { background-color: #1f2a2e; }
         #deviceList {
             margin: 10px 0;
             padding: 10px;
             width: 100%;
+            border-radius: 8px;
+            border: 1px solid rgba(1, 100, 79, 0.25);
+            outline: none;
+            background: var(--surface-muted);
+            color: var(--text-main);
         }
         #history {
             margin-top: 16px;
@@ -72,7 +111,7 @@
         #history h3 {
             margin: 8px 0;
             font-size: 18px;
-            color: #333;
+            color: var(--accent);
         }
         #historyList {
             max-height: 200px;
@@ -80,12 +119,13 @@
             padding: 0;
             margin: 0;
             list-style: none;
-            border: 1px solid #eee;
+            border: 1px solid rgba(1, 100, 79, 0.12);
             border-radius: 6px;
+            background: var(--surface);
         }
         #historyList li {
             padding: 8px 10px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid rgba(1, 100, 79, 0.08);
             font-size: 14px;
             display: flex;
             justify-content: space-between;
@@ -100,11 +140,12 @@
         }
         @media (max-width: 600px) {
             #level { font-size: 44px; }
+            #avg.highlight { font-size: 36px; }
             button { width: 100%; }
         }
         .note {
             font-size: 14px;
-            color: #888;
+            color: #667d81;
             margin-top: 20px;
         }
     </style>
@@ -234,6 +275,8 @@
                 levelElement.textContent = '-- dB';
                 startTimeMs = Date.now();
                 isMeasuring = true;
+                // Убираем выделение среднего при новом замере
+                avgElement.classList.remove('highlight');
 
                 // Обновляем список устройств при изменении
                 navigator.mediaDevices.addEventListener('devicechange', updateDeviceList);
@@ -310,6 +353,8 @@
                 const durationSec = Math.floor((Date.now() - startTimeMs) / 1000);
                 if (avg !== null) {
                     avgElement.textContent = `Среднее: ${avg.toFixed(1)} dB`;
+                    // Выделяем среднее значение как ключевое после завершения
+                    avgElement.classList.add('highlight');
                 }
                 const record = {
                     ts: Date.now(),
