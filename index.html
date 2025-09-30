@@ -38,6 +38,11 @@
             color: #333;
             margin: 20px 0;
         }
+        #avg, #duration {
+            font-size: 18px;
+            color: #333;
+            margin: 6px 0;
+        }
         button {
             padding: 10px 20px;
             font-size: 16px;
@@ -60,6 +65,43 @@
             padding: 10px;
             width: 100%;
         }
+        #history {
+            margin-top: 16px;
+            text-align: left;
+        }
+        #history h3 {
+            margin: 8px 0;
+            font-size: 18px;
+            color: #333;
+        }
+        #historyList {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            border: 1px solid #eee;
+            border-radius: 6px;
+        }
+        #historyList li {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        #historyList li:last-child { border-bottom: none; }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        @media (max-width: 600px) {
+            #level { font-size: 44px; }
+            button { width: 100%; }
+        }
         .note {
             font-size: 14px;
             color: #888;
@@ -72,10 +114,19 @@
         <h1>Онлайн шумомер</h1>
         <div id="status">Нажмите "Начать" для доступа к микрофону</div>
         <div id="level">-- dB</div>
-        <button id="startBtn">Начать</button>
-        <button id="stopBtn" disabled>Остановить</button>
+        <div id="avg">Среднее: -- dB</div>
+        <div id="duration">Длительность: 00:00</div>
+        <div class="row">
+            <button id="startBtn">Начать</button>
+            <button id="stopBtn" disabled>Остановить</button>
+            <button id="clearHistoryBtn" disabled>Сбросить историю</button>
+        </div>
         <select id="deviceList" style="display:none;"></select>
         <div class="note">Примечание: для использования Bluetooth-микрофона подключите его к устройству и выберите в списке устройств (если доступно).</div>
+        <div id="history">
+            <h3>История замеров</h3>
+            <ul id="historyList"></ul>
+        </div>
     </div>
 
     <script>
@@ -84,11 +135,21 @@
         let microphone = null;
         let javascriptNode = null;
         let rafId = null;
+        let isMeasuring = false;
+        let startTimeMs = 0;
+        let sumDb = 0;
+        let countDb = 0;
+        let deviceLabel = '';
+        let history = [];
         const levelElement = document.getElementById('level');
         const statusElement = document.getElementById('status');
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const deviceList = document.getElementById('deviceList');
+        const avgElement = document.getElementById('avg');
+        const durationElement = document.getElementById('duration');
+        const historyListEl = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
         // Проверка поддержки getUserMedia
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -98,6 +159,17 @@
 
         startBtn.addEventListener('click', startMeter);
         stopBtn.addEventListener('click', stopMeter);
+        clearHistoryBtn.addEventListener('click', clearHistory);
+
+        // История из localStorage
+        try {
+            const saved = localStorage.getItem('noiseMeterHistory');
+            if (saved) {
+                history = JSON.parse(saved);
+                renderHistory();
+                clearHistoryBtn.disabled = history.length === 0;
+            }
+        } catch(e) {}
 
         async function startMeter() {
             try {
@@ -126,6 +198,7 @@
                 }
 
                 const selectedDeviceId = deviceList.value || undefined;
+                deviceLabel = (deviceList.selectedOptions[0]?.textContent) || '';
 
                 // Запрашиваем доступ к микрофону
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -151,6 +224,16 @@
                 statusElement.textContent = 'Измерение уровня звука...';
                 startBtn.disabled = true;
                 stopBtn.disabled = false;
+                clearHistoryBtn.disabled = history.length === 0 ? true : false;
+
+                // Сброс накопителей для нового замера
+                sumDb = 0;
+                countDb = 0;
+                avgElement.textContent = 'Среднее: -- dB';
+                durationElement.textContent = 'Длительность: 00:00';
+                levelElement.textContent = '-- dB';
+                startTimeMs = Date.now();
+                isMeasuring = true;
 
                 // Обновляем список устройств при изменении
                 navigator.mediaDevices.addEventListener('devicechange', updateDeviceList);
@@ -175,13 +258,25 @@
                 }
                 const rms = Math.sqrt(sum / bufferLength);
 
-                // Преобразуем в децибелы
-                let db = rms > 0 ? 20 * Math.log10(rms) : -100;
-                // Ограничиваем минимальное значение
+                // Преобразуем в dBFS и нормализуем, чтобы исключить отрицательные значения
+                let db = rms > 0 ? 20 * Math.log10(rms) : -100; // dBFS диапазон [-∞..0]
                 db = Math.max(db, -100);
+                const displayedDb = Math.min(120, Math.max(0, db + 100)); // 0..120 условных дБ
 
-                // Отображаем уровень
-                levelElement.textContent = `${db.toFixed(1)} dB`;
+                // Накопление среднего во время измерения
+                if (isMeasuring) {
+                    sumDb += displayedDb;
+                    countDb += 1;
+                    const avg = sumDb / Math.max(1, countDb);
+                    avgElement.textContent = `Среднее: ${avg.toFixed(1)} dB`;
+                    const elapsed = Math.floor((Date.now() - startTimeMs) / 1000);
+                    const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                    const ss = String(elapsed % 60).padStart(2, '0');
+                    durationElement.textContent = `Длительность: ${mm}:${ss}`;
+                }
+
+                // Отображаем мгновенный уровень
+                levelElement.textContent = `${displayedDb.toFixed(1)} dB`;
 
                 rafId = requestAnimationFrame(updateLevel);
             };
@@ -204,11 +299,31 @@
             if (navigator.mediaDevices) {
                 navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList);
             }
-            levelElement.textContent = '-- dB';
             statusElement.textContent = 'Измерение остановлено.';
             startBtn.disabled = false;
             stopBtn.disabled = true;
             deviceList.style.display = 'none';
+
+            // Итог среднего и сохранение в историю
+            if (isMeasuring) {
+                const avg = countDb > 0 ? (sumDb / countDb) : null;
+                const durationSec = Math.floor((Date.now() - startTimeMs) / 1000);
+                if (avg !== null) {
+                    avgElement.textContent = `Среднее: ${avg.toFixed(1)} dB`;
+                }
+                const record = {
+                    ts: Date.now(),
+                    avg: avg !== null ? Number(avg.toFixed(1)) : null,
+                    duration: durationSec,
+                    device: deviceLabel
+                };
+                history.unshift(record);
+                saveHistory();
+                renderHistory();
+                clearHistoryBtn.disabled = history.length === 0;
+            }
+
+            isMeasuring = false;
         }
 
         async function updateDeviceList() {
@@ -234,6 +349,35 @@
             stopMeter();
             setTimeout(startMeter, 100);
         });
+
+        function renderHistory() {
+            historyListEl.innerHTML = '';
+            if (!history.length) return;
+            history.forEach(item => {
+                const li = document.createElement('li');
+                const left = document.createElement('span');
+                const right = document.createElement('span');
+                const dt = new Date(item.ts);
+                const mm = String(Math.floor(item.duration / 60)).padStart(2, '0');
+                const ss = String(item.duration % 60).padStart(2, '0');
+                left.textContent = `${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}${item.device ? ' · ' + item.device : ''}`;
+                right.textContent = `${item.avg !== null ? item.avg.toFixed(1) + ' dB' : '-- dB'} · ${mm}:${ss}`;
+                li.appendChild(left);
+                li.appendChild(right);
+                historyListEl.appendChild(li);
+            });
+        }
+
+        function saveHistory() {
+            try { localStorage.setItem('noiseMeterHistory', JSON.stringify(history.slice(0, 100))); } catch(e) {}
+        }
+
+        function clearHistory() {
+            history = [];
+            saveHistory();
+            renderHistory();
+            clearHistoryBtn.disabled = true;
+        }
     </script>
 </body>
 </html>
