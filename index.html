@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Онлайн шумомер</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Шумомер</title>
     <style>
         :root {
             --accent: #01644f;
@@ -46,13 +46,19 @@
             font-size: 18px;
             color: #486267;
         }
-        #level {
-            font-size: 60px;
-            font-weight: bold;
-            color: #233538;
-            margin: 20px 0;
+        #avg {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 10px 0 4px 0;
         }
-        #avg, #duration {
+        #level {
+            font-size: 16px;
+            font-weight: 600;
+            color: #6b8488;
+            margin: 6px 0 14px 0;
+        }
+        #duration {
             font-size: 18px;
             color: #233538;
             margin: 6px 0;
@@ -86,12 +92,12 @@
             box-shadow: none;
             transform: none;
         }
-        #stopBtn {
+        #toggleBtn.stop {
             background: linear-gradient(0deg, rgba(1,100,79,0.08), rgba(1,100,79,0.08)), #ffffff;
             color: var(--accent);
             border: 1px solid rgba(1, 100, 79, 0.28);
         }
-        #stopBtn:hover { background: #f2fbf8; }
+        #toggleBtn.stop:hover { background: #f2fbf8; }
         #clearHistoryBtn { background-color: #2c3e40; }
         #clearHistoryBtn:hover { background-color: #1f2a2e; }
         #deviceList {
@@ -139,8 +145,9 @@
             justify-content: center;
         }
         @media (max-width: 600px) {
-            #level { font-size: 44px; }
-            #avg.highlight { font-size: 36px; }
+            #avg { font-size: 36px; }
+            #avg.highlight { font-size: 34px; }
+            #level { font-size: 14px; }
             button { width: 100%; }
         }
         .note {
@@ -152,18 +159,16 @@
 </head>
 <body>
     <div id="app">
-        <h1>Онлайн шумомер</h1>
-        <div id="status">Нажмите "Начать" для доступа к микрофону</div>
-        <div id="level">-- dB</div>
+        <h1>Шумомер</h1>
+        <div id="status">Нажмите "Старт" для доступа к микрофону</div>
         <div id="avg">Среднее: -- dB</div>
+        <div id="level">-- dB (мгновенное)</div>
         <div id="duration">Длительность: 00:00</div>
         <div class="row">
-            <button id="startBtn">Начать</button>
-            <button id="stopBtn" disabled>Остановить</button>
+            <button id="toggleBtn">Старт</button>
             <button id="clearHistoryBtn" disabled>Сбросить историю</button>
         </div>
         <select id="deviceList" style="display:none;"></select>
-        <div class="note">Примечание: для использования Bluetooth-микрофона подключите его к устройству и выберите в списке устройств (если доступно).</div>
         <div id="history">
             <h3>История замеров</h3>
             <ul id="historyList"></ul>
@@ -184,8 +189,7 @@
         let history = [];
         const levelElement = document.getElementById('level');
         const statusElement = document.getElementById('status');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
+        const toggleBtn = document.getElementById('toggleBtn');
         const deviceList = document.getElementById('deviceList');
         const avgElement = document.getElementById('avg');
         const durationElement = document.getElementById('duration');
@@ -198,8 +202,13 @@
             startBtn.disabled = true;
         }
 
-        startBtn.addEventListener('click', startMeter);
-        stopBtn.addEventListener('click', stopMeter);
+        toggleBtn.addEventListener('click', () => {
+            if (!isMeasuring) {
+                startMeter();
+            } else {
+                stopMeter();
+            }
+        });
         clearHistoryBtn.addEventListener('click', clearHistory);
 
         // История из localStorage
@@ -263,8 +272,8 @@
                 processAudio();
 
                 statusElement.textContent = 'Измерение уровня звука...';
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
+                toggleBtn.textContent = 'Стоп';
+                toggleBtn.classList.add('stop');
                 clearHistoryBtn.disabled = history.length === 0 ? true : false;
 
                 // Сброс накопителей для нового замера
@@ -343,8 +352,8 @@
                 navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList);
             }
             statusElement.textContent = 'Измерение остановлено.';
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
+            toggleBtn.textContent = 'Старт';
+            toggleBtn.classList.remove('stop');
             deviceList.style.display = 'none';
 
             // Итог среднего и сохранение в историю
