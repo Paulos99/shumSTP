@@ -459,8 +459,12 @@
             toggleBtn.disabled = false;
             deviceList.style.display = 'none';
 
+            // Сбрасываем флаг измерения ДО обработки итогов, чтобы живая линия не рисовалась
+            const wasMeasuring = isMeasuring;
+            isMeasuring = false;
+
             // Итог среднего (энергетическое усреднение)
-            if (isMeasuring) {
+            if (wasMeasuring) {
                 const meanRms2 = countFrames > 0 ? (sumRms2 / countFrames) : 0;
                 const avgDbFs = meanRms2 > 0 ? 10 * Math.log10(meanRms2) : -100;
                 const avg = avgDbFs + 100;
@@ -482,10 +486,11 @@
                         }
                     }
                 }
-                // Сохраняем сглаженную АЧХ для визуализации по фазам
+                // Сохраняем сглаженную АЧХ для визуализации по фазам (с доп. сглаживанием для плавности линии)
                 if (currentSmoothed) {
-                    if (measurementPhase === 'before') beforeSmoothed = new Uint8Array(currentSmoothed);
-                    else afterSmoothed = new Uint8Array(currentSmoothed);
+                    const extraSmoothed = smoothSpectrum(currentSmoothed, 12);
+                    if (measurementPhase === 'before') beforeSmoothed = new Uint8Array(extraSmoothed);
+                    else afterSmoothed = new Uint8Array(extraSmoothed);
                 }
                 // Финальная отрисовка сглаженной АЧХ
                 try {
@@ -624,6 +629,42 @@
             return out;
         }
 
+        // Дополнительное сглаживание для плавных линий (адаптивное окно + двойной проход)
+        function smoothSpectrum(spectrum, baseWindowSize = 12) {
+            if (!spectrum || spectrum.length === 0) return spectrum;
+            let out = new Uint8Array(spectrum.length);
+            
+            // Первый проход: адаптивное окно
+            for (let i = 0; i < spectrum.length; i++) {
+                const t = i / spectrum.length;
+                const adaptiveWindow = Math.round(baseWindowSize * (1 + t * 3)); // от 12 до 48
+                const half = Math.floor(adaptiveWindow / 2);
+                let sum = 0;
+                let count = 0;
+                for (let j = Math.max(0, i - half); j <= Math.min(spectrum.length - 1, i + half); j++) {
+                    sum += spectrum[j];
+                    count++;
+                }
+                out[i] = Math.round(sum / count);
+            }
+            
+            // Второй проход: дополнительное сглаживание для ультра-плавности
+            const out2 = new Uint8Array(spectrum.length);
+            for (let i = 0; i < spectrum.length; i++) {
+                const window = 6;
+                const half = Math.floor(window / 2);
+                let sum = 0;
+                let count = 0;
+                for (let j = Math.max(0, i - half); j <= Math.min(spectrum.length - 1, i + half); j++) {
+                    sum += out[j];
+                    count++;
+                }
+                out2[i] = Math.round(sum / count);
+            }
+            
+            return out2;
+        }
+
         function drawFrequencyResponse(freqArray) {
             if (!freqCtx) return;
             const rect = freqCanvas.getBoundingClientRect();
@@ -641,12 +682,22 @@
             const logMin = Math.log10(minF);
             const logMax = Math.log10(maxF);
 
-            // Рисуем только сетку сейчас, подписи нанесём ПОСЛЕ графиков
+            // Сначала рисуем горизонтальные линии уровня для плавности восприятия
+            freqCtx.strokeStyle = 'rgba(1,100,79,0.06)';
+            freqCtx.lineWidth = 1;
+            for (let i = 1; i <= 4; i++) {
+                const y = (height / 5) * i;
+                freqCtx.beginPath();
+                freqCtx.moveTo(0, y);
+                freqCtx.lineTo(width, y);
+                freqCtx.stroke();
+            }
+
+            // Рисуем вертикальную сетку (более тонко и нежно)
             const ticks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
             const tickPositions = [];
-            // Более выразительная сетка
-            freqCtx.strokeStyle = 'rgba(1,100,79,0.18)';
-            freqCtx.lineWidth = 1.5;
+            freqCtx.strokeStyle = 'rgba(1,100,79,0.10)';
+            freqCtx.lineWidth = 0.8;
             ticks.forEach(f => {
                 if (f > maxF) return;
                 const x = ((Math.log10(f) - logMin) / (logMax - logMin)) * width;
@@ -658,33 +709,71 @@
                 freqCtx.stroke();
             });
 
-            // Столбики (сэмплируем по лог-шкале) — цвет по фазе
-            const columns = Math.min(140, Math.floor(width / 2.6));
-            const colW = Math.max(2.5, Math.floor(width / columns) - 1);
-            const liveColor = (isMeasuring && measurementPhase === 'after') ? 'rgba(1,100,79,0.8)' : 'rgba(229,57,53,0.8)';
-            for (let c = 0; c < columns; c++) {
-                const t = c / (columns - 1);
-                const logF = logMin + t * (logMax - logMin);
-                const f = Math.pow(10, logF);
-                const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
-                // Поднятие видимости ВЧ: легкий наклон и степень
-                let v = freqArray[bin] / 255; // 0..1
-                v = Math.pow(v, 0.85);
-                const hfGain = 0.85 + 0.3 * t; // больше к ВЧ
-                const vDraw = Math.min(1, v * hfGain);
-                const h = vDraw * (height - 6);
-                const x = Math.floor(c * (width / columns));
-                const y = height - h;
-                freqCtx.fillStyle = liveColor;
-                freqCtx.fillRect(x, y, colW, h);
+            // Живая линия во время измерения (с тем же сглаживанием что и итоговая)
+            // Рисуем только если идёт активное измерение
+            if (isMeasuring && analyser && freqArray && freqArray.length === bins) {
+                // Применяем медиану по текущему буферу для согласованности
+                const liveData = currentSmoothed || freqArray;
+                const liveColor = (measurementPhase === 'after') ? '#01644f' : '#e53935';
+                const liveColorAlpha = (measurementPhase === 'after') ? 'rgba(1,100,79,0.3)' : 'rgba(229,57,53,0.3)';
+                
+                // Создаём градиент для заливки
+                const gradient = freqCtx.createLinearGradient(0, 0, 0, height);
+                gradient.addColorStop(0, (measurementPhase === 'after') ? 'rgba(1,100,79,0.4)' : 'rgba(229,57,53,0.4)');
+                gradient.addColorStop(1, 'rgba(255,255,255,0)');
+                
+                // Рисуем путь для заливки
+                freqCtx.beginPath();
+                freqCtx.moveTo(0, height - 20);
+                for (let c = 0; c < width; c++) {
+                    const t = c / (width - 1);
+                    const logF = logMin + t * (logMax - logMin);
+                    const f = Math.pow(10, logF);
+                    const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
+                    let v = liveData[bin] / 255;
+                    v = Math.pow(v, 0.85);
+                    const hfGain = 0.85 + 0.3 * t;
+                    const vDraw = Math.min(1, v * hfGain);
+                    const h = vDraw * (height - 30);
+                    const y = height - h - 20;
+                    freqCtx.lineTo(c, y);
+                }
+                freqCtx.lineTo(width, height - 20);
+                freqCtx.closePath();
+                freqCtx.fillStyle = gradient;
+                freqCtx.fill();
+                
+                // Рисуем линию поверх
+                freqCtx.lineWidth = 2.5;
+                freqCtx.strokeStyle = liveColor;
+                freqCtx.globalAlpha = 0.7;
+                freqCtx.beginPath();
+                for (let c = 0; c < width; c++) {
+                    const t = c / (width - 1);
+                    const logF = logMin + t * (logMax - logMin);
+                    const f = Math.pow(10, logF);
+                    const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
+                    let v = liveData[bin] / 255;
+                    v = Math.pow(v, 0.85);
+                    const hfGain = 0.85 + 0.3 * t;
+                    const vDraw = Math.min(1, v * hfGain);
+                    const h = vDraw * (height - 30);
+                    const y = height - h - 20;
+                    if (c === 0) freqCtx.moveTo(c, y); else freqCtx.lineTo(c, y);
+                }
+                freqCtx.stroke();
+                freqCtx.globalAlpha = 1.0;
             }
 
-            // Линия АЧХ ДО (красная) если есть
+            // Линия АЧХ ДО (красная горка с градиентом) если есть
             if (beforeSmoothed && beforeSmoothed.length === bins) {
-                freqCtx.lineWidth = 2.5;
-                freqCtx.strokeStyle = '#e53935';
+                const gradientBefore = freqCtx.createLinearGradient(0, 0, 0, height);
+                gradientBefore.addColorStop(0, 'rgba(229,57,53,0.5)');
+                gradientBefore.addColorStop(1, 'rgba(229,57,53,0.05)');
+                
+                // Рисуем заливку
                 freqCtx.beginPath();
-                let started = false;
+                freqCtx.moveTo(0, height - 20);
                 for (let c = 0; c < width; c++) {
                     const t = c / (width - 1);
                     const logF = logMin + t * (logMax - logMin);
@@ -694,18 +783,43 @@
                     v = Math.pow(v, 0.85);
                     const hfGain = 0.85 + 0.3 * t;
                     const vDraw = Math.min(1, v * hfGain);
-                    const h = vDraw * (height - 6);
-                    const y = height - h;
-                    if (!started) { freqCtx.moveTo(c, y); started = true; } else { freqCtx.lineTo(c, y); }
+                    const h = vDraw * (height - 30);
+                    const y = height - h - 20;
+                    freqCtx.lineTo(c, y);
+                }
+                freqCtx.lineTo(width, height - 20);
+                freqCtx.closePath();
+                freqCtx.fillStyle = gradientBefore;
+                freqCtx.fill();
+                
+                // Линия поверх
+                freqCtx.lineWidth = 2.5;
+                freqCtx.strokeStyle = '#e53935';
+                freqCtx.beginPath();
+                for (let c = 0; c < width; c++) {
+                    const t = c / (width - 1);
+                    const logF = logMin + t * (logMax - logMin);
+                    const f = Math.pow(10, logF);
+                    const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
+                    let v = beforeSmoothed[bin] / 255;
+                    v = Math.pow(v, 0.85);
+                    const hfGain = 0.85 + 0.3 * t;
+                    const vDraw = Math.min(1, v * hfGain);
+                    const h = vDraw * (height - 30);
+                    const y = height - h - 20;
+                    if (c === 0) freqCtx.moveTo(c, y); else freqCtx.lineTo(c, y);
                 }
                 freqCtx.stroke();
             }
-            // Линия АЧХ ПОСЛЕ (зелёная) если есть
+            // Линия АЧХ ПОСЛЕ (зелёная горка с градиентом) если есть
             if (afterSmoothed && afterSmoothed.length === bins) {
-                freqCtx.lineWidth = 2.5;
-                freqCtx.strokeStyle = '#01644f';
+                const gradientAfter = freqCtx.createLinearGradient(0, 0, 0, height);
+                gradientAfter.addColorStop(0, 'rgba(1,100,79,0.5)');
+                gradientAfter.addColorStop(1, 'rgba(1,100,79,0.05)');
+                
+                // Рисуем заливку
                 freqCtx.beginPath();
-                let started2 = false;
+                freqCtx.moveTo(0, height - 20);
                 for (let c = 0; c < width; c++) {
                     const t = c / (width - 1);
                     const logF = logMin + t * (logMax - logMin);
@@ -715,9 +829,31 @@
                     v = Math.pow(v, 0.85);
                     const hfGain = 0.85 + 0.3 * t;
                     const vDraw = Math.min(1, v * hfGain);
-                    const h = vDraw * (height - 6);
-                    const y = height - h;
-                    if (!started2) { freqCtx.moveTo(c, y); started2 = true; } else { freqCtx.lineTo(c, y); }
+                    const h = vDraw * (height - 30);
+                    const y = height - h - 20;
+                    freqCtx.lineTo(c, y);
+                }
+                freqCtx.lineTo(width, height - 20);
+                freqCtx.closePath();
+                freqCtx.fillStyle = gradientAfter;
+                freqCtx.fill();
+                
+                // Линия поверх
+                freqCtx.lineWidth = 2.5;
+                freqCtx.strokeStyle = '#01644f';
+                freqCtx.beginPath();
+                for (let c = 0; c < width; c++) {
+                    const t = c / (width - 1);
+                    const logF = logMin + t * (logMax - logMin);
+                    const f = Math.pow(10, logF);
+                    const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
+                    let v = afterSmoothed[bin] / 255;
+                    v = Math.pow(v, 0.85);
+                    const hfGain = 0.85 + 0.3 * t;
+                    const vDraw = Math.min(1, v * hfGain);
+                    const h = vDraw * (height - 30);
+                    const y = height - h - 20;
+                    if (c === 0) freqCtx.moveTo(c, y); else freqCtx.lineTo(c, y);
                 }
                 freqCtx.stroke();
             }
