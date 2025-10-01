@@ -50,7 +50,7 @@
             max-height: none;
             border-radius: 0;
             box-shadow: none;
-            padding: 24px 32px 88px 32px; /* отступ снизу под кнопки */
+            padding: 16px 32px 96px 32px; /* чуть выше контент, больше зона под кнопки */
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: auto auto auto 1fr auto;
@@ -64,17 +64,17 @@
             align-items: start;
         }
         .fs #spectrumWrap { grid-area: graph; }
-        .fs #freqCanvas { height: 34vh; max-height: none; min-height: 220px; }
+        .fs #freqCanvas { height: 42vh; max-height: none; min-height: 260px; }
 
-        .fs h1 { grid-area: title; font-size: clamp(64px, 9vw, 160px); margin: 0; letter-spacing: 0.5px; }
-        .fs #status { grid-area: status; font-size: clamp(16px, 2.2vw, 28px); margin: 2px 0 8px 0; color: #486267; }
+        .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0; letter-spacing: 0.6px; }
+        .fs #status { grid-area: status; font-size: clamp(14px, 1.6vw, 22px); margin: 0 0 6px 0; color: #486267; }
 
         /* Метрики ДО/ПОСЛЕ очень крупно, по сторонам */
         .fs #avgBefore { grid-area: metricsL; justify-self: start; align-self: center; }
         .fs #avgAfter { grid-area: metricsR; justify-self: end; align-self: center; }
         .fs #avgBefore, .fs #avgAfter {
             display: inline-block;
-            font-size: clamp(56px, 7.5vw, 140px);
+            font-size: clamp(44px, 6.2vw, 120px);
             font-weight: 900;
             margin: 0;
         }
@@ -87,12 +87,20 @@
         /* Кнопки: компактные, закреплены внизу справа */
         .fs .row {
             position: fixed;
+            left: 24px;
             right: 24px;
             bottom: 24px;
-            gap: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
             z-index: 10;
+            pointer-events: none; /* контейнер не ловит клики, только кнопки */
         }
-        .fs button { font-size: clamp(14px, 1.8vw, 20px); padding: 10px 18px; border-radius: 10px; }
+        .fs .row button { pointer-events: auto; }
+        .fs #toggleBtn { align-self: flex-end; }
+        .fs #resetBtn { align-self: flex-end; }
+        .fs button { font-size: clamp(16px, 2.2vw, 28px); padding: 14px 24px; border-radius: 12px; }
         h1 {
             margin-top: 0;
             color: var(--accent);
