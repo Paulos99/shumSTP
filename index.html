@@ -50,7 +50,7 @@
             max-height: none;
             border-radius: 0;
             box-shadow: none;
-            padding: 10px 32px 110px 32px; /* выше заголовок, ниже кнопки */
+            padding: 6px 32px 110px 32px; /* ещё чуть выше контент */
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: auto auto auto 1fr auto;
@@ -63,18 +63,17 @@
             gap: 10px 16px;
             align-items: start;
         }
-        .fs #spectrumWrap { grid-area: graph; position: relative; }
+        .fs #spectrumWrap { grid-area: graph; position: relative; padding-bottom: 32px; margin-top: -8px; }
         .fs #freqCanvas { height: 46vh; max-height: none; min-height: 280px; }
 
-        .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0; letter-spacing: 0.6px; }
+        .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0 0 4px 0; letter-spacing: 0.6px; }
         /* Статус поверх графика, у верхней кромки канваса */
         .fs #status {
             grid-area: graph;
             position: absolute;
             top: 8px;
-            left: 0;
-            right: 0;
-            text-align: center;
+            left: 50%;
+            transform: translateX(-50%);
             font-size: clamp(12px, 1.4vw, 20px);
             margin: 0;
             color: #486267;
@@ -88,7 +87,7 @@
             display: inline-block;
             font-size: clamp(44px, 6.2vw, 120px);
             font-weight: 900;
-            margin: 0;
+            margin: -4px 0 0 0; /* чуть выше */
         }
         .fs #avgBefore { text-align: left; }
         .fs #avgAfter { text-align: right; }
@@ -98,10 +97,22 @@
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
-            bottom: 64px;
+            bottom: 20px;
             font-size: clamp(18px, 2.6vw, 36px);
             margin: 0;
             z-index: 9;
+        }
+
+        /* Осталось: секунды — прямо под графиком по центру */
+        .fs #duration {
+            grid-area: graph;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 4px;
+            font-size: clamp(12px, 1.6vw, 22px);
+            color: #233538;
+            margin: 0;
         }
         .fs #duration { font-size: clamp(16px, 2vw, 28px); opacity: 0.9; }
 
@@ -896,6 +907,18 @@
             const logMin = Math.log10(minF);
             const logMax = Math.log10(maxF);
 
+            // Позиционируем статус посередине между 500 Гц и 1 кГц
+            try {
+                const fA = 500;
+                const fB = 1000;
+                const xA = ((Math.log10(fA) - logMin) / (logMax - logMin)) * width;
+                const xB = ((Math.log10(fB) - logMin) / (logMax - logMin)) * width;
+                const midX = (xA + xB) / 2;
+                statusElement.style.left = `${midX}px`;
+                statusElement.style.transform = 'translateX(-50%)';
+                statusElement.style.top = '8px';
+            } catch(e) {}
+
             // Сначала рисуем горизонтальные линии уровня для плавности восприятия
             freqCtx.strokeStyle = 'rgba(1,100,79,0.06)';
             freqCtx.lineWidth = 1;
@@ -1025,7 +1048,7 @@
                 }
                 freqCtx.stroke();
             }
-            // Линия АЧХ ПОСЛЕ (зелёная горка с градиентом) если есть
+            // Линия АЧХ ПОСЛЕ (зелёная горка с градиентом) если есть — рисуем ПОСЛЕ красного, чтобы быть поверх
             if (afterSmoothed && afterSmoothed.length === bins) {
                 const gradientAfter = freqCtx.createLinearGradient(0, 0, 0, height);
                 gradientAfter.addColorStop(0, 'rgba(1,100,79,0.5)');
