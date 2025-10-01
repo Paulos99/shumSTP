@@ -50,21 +50,21 @@
             max-height: none;
             border-radius: 0;
             box-shadow: none;
-            padding: 16px 32px 96px 32px; /* чуть выше контент, больше зона под кнопки */
+            padding: 10px 32px 110px 32px; /* выше заголовок, ниже кнопки */
             display: grid;
             grid-template-columns: 1fr 1fr;
             grid-template-rows: auto auto auto 1fr auto;
             grid-template-areas:
                 'title title'
+                'graph graph'
                 'metricsL metricsR'
                 'status status'
-                'graph graph'
                 'diff diff';
             gap: 10px 16px;
             align-items: start;
         }
         .fs #spectrumWrap { grid-area: graph; }
-        .fs #freqCanvas { height: 42vh; max-height: none; min-height: 260px; }
+        .fs #freqCanvas { height: 46vh; max-height: none; min-height: 280px; }
 
         .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0; letter-spacing: 0.6px; }
         .fs #status { grid-area: status; font-size: clamp(14px, 1.6vw, 22px); margin: 0 0 6px 0; color: #486267; }
@@ -89,7 +89,7 @@
             position: fixed;
             left: 24px;
             right: 24px;
-            bottom: 24px;
+            bottom: 12px; /* ниже, ближе к краю экрана */
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -101,6 +101,29 @@
         .fs #toggleBtn { align-self: flex-end; }
         .fs #resetBtn { align-self: flex-end; }
         .fs button { font-size: clamp(16px, 2.2vw, 28px); padding: 14px 24px; border-radius: 12px; }
+
+        /* Экран запуска вне fullscreen */
+        #launchOverlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            color: var(--accent);
+            z-index: 100;
+        }
+        #launchOverlay button {
+            font-size: 28px;
+            padding: 14px 28px;
+            border: 2px solid var(--accent);
+            background: #ffffff;
+            color: var(--accent);
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        html:not(.fs) #launchOverlay { display: flex; }
+        html:not(.fs) #app { display: none; }
         h1 {
             margin-top: 0;
             color: var(--accent);
@@ -329,6 +352,7 @@
     </style>
 </head>
 <body>
+    <div id="launchOverlay"><button id="launchBtn">ЗАПУСТИТЬ</button></div>
     <div id="app">
         <h1>Измерение шума</h1>
         <div id="status">Нажмите "Старт" для доступа к микрофону</div>
@@ -368,6 +392,7 @@
         const statusElement = document.getElementById('status');
         const toggleBtn = document.getElementById('toggleBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const launchBtn = document.getElementById('launchBtn');
         const deviceList = document.getElementById('deviceList');
         const avgElement = document.getElementById('avg');
         const avgBeforeEl = document.getElementById('avgBefore');
@@ -400,6 +425,16 @@
             statusElement.textContent = 'Ваш браузер не поддерживает доступ к микрофону.';
             toggleBtn.disabled = true;
         }
+
+        // Экран запуска
+        launchBtn.addEventListener('click', async () => {
+            try {
+                if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                    document.documentElement.classList.add('fs');
+                }
+            } catch(e) {}
+        });
 
         toggleBtn.addEventListener('click', async () => {
             try {
@@ -647,11 +682,16 @@
             }
 
             isMeasuring = false;
-            // Переключаем фазу: после первого измерения идём в after, после второго — сбрасываем в before при следующем старте
+            // Переключаем фазу и управляем подписями кнопок
             if (measurementPhase === 'before') {
                 measurementPhase = 'after';
+                toggleBtn.textContent = 'Старт (после)';
+                resetBtn.textContent = 'Стоп';
             } else {
                 measurementPhase = 'before';
+                // Второе завершение — предлагаем начать заново и сбросить
+                toggleBtn.textContent = 'Заново';
+                resetBtn.textContent = 'Сброс';
             }
         }
 
