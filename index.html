@@ -53,9 +53,10 @@
             padding: 24px 32px 88px 32px; /* отступ снизу под кнопки */
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto auto 1fr auto;
+            grid-template-rows: auto auto auto 1fr auto;
             grid-template-areas:
                 'title title'
+                'metricsL metricsR'
                 'status status'
                 'graph graph'
                 'diff diff';
@@ -69,14 +70,13 @@
         .fs #status { grid-area: status; font-size: clamp(16px, 2.2vw, 28px); margin: 2px 0 8px 0; color: #486267; }
 
         /* Метрики ДО/ПОСЛЕ очень крупно, по сторонам */
-        .fs #avgBefore { grid-area: title; justify-self: start; align-self: end; }
-        .fs #avgAfter { grid-area: title; justify-self: end; align-self: end; }
-        /* Вынесем их визуально под заголовок: используем отрицательный margin */
+        .fs #avgBefore { grid-area: metricsL; justify-self: start; align-self: center; }
+        .fs #avgAfter { grid-area: metricsR; justify-self: end; align-self: center; }
         .fs #avgBefore, .fs #avgAfter {
             display: inline-block;
             font-size: clamp(56px, 7.5vw, 140px);
             font-weight: 900;
-            margin-top: 6px;
+            margin: 0;
         }
         .fs #avgBefore { text-align: left; }
         .fs #avgAfter { text-align: right; }
@@ -434,35 +434,16 @@
                     } catch(e) {}
                 }
 
-                // Получаем список устройств ввода
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const audioInputDevices = devices.filter(device => device.kind === 'audioinput');
-
-                if (audioInputDevices.length === 0) {
-                    throw new Error('Аудиоустройства ввода не найдены.');
-                }
-
-                // Если есть несколько устройств, показываем выбор
-                if (audioInputDevices.length > 1) {
-                    deviceList.innerHTML = '';
-                    audioInputDevices.forEach(device => {
-                        const option = document.createElement('option');
-                        option.value = device.deviceId;
-                        option.textContent = device.label || `Микрофон ${device.deviceId.substring(0, 5)}`;
-                        deviceList.appendChild(option);
-                    });
-                    deviceList.style.display = 'block';
-                } else {
-                    deviceList.style.display = 'none';
-                }
-
-                const selectedDeviceId = deviceList.value || undefined;
-                deviceLabel = (deviceList.selectedOptions[0]?.textContent) || '';
+                // Используем микрофон по умолчанию — без выбора устройства
+                deviceList.style.display = 'none';
+                const selectedDeviceId = undefined;
+                deviceLabel = '';
 
                 // Запрашиваем доступ к микрофону
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+                        // deviceId не указываем, чтобы взять устройство по умолчанию
+                        deviceId: undefined,
                         echoCancellation: false,
                         noiseSuppression: false,
                         autoGainControl: false
@@ -514,7 +495,7 @@
                 // Если начинаем ПОСЛЕ, не трогаем avgBefore и beforePeaks
 
                 // Обновляем список устройств при изменении
-                navigator.mediaDevices.addEventListener('devicechange', updateDeviceList);
+                // Больше не обновляем список устройств — фиксируемся на устройстве по умолчанию
             } catch (err) {
                 console.error('Ошибка:', err);
                 statusElement.textContent = `Ошибка: ${err.message || 'Не удалось получить доступ к микрофону.'}`;
