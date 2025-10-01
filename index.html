@@ -62,6 +62,7 @@
                 'diff diff';
             gap: 10px 16px;
             align-items: start;
+            position: relative;
         }
         .fs #spectrumWrap { grid-area: graph; position: relative; padding-bottom: 32px; margin-top: -8px; }
         .fs #freqCanvas { height: 46vh; max-height: none; min-height: 280px; }
@@ -97,22 +98,22 @@
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
-            bottom: 20px;
-            font-size: clamp(18px, 2.6vw, 36px);
+            bottom: 12px; /* на одной линии с кнопками */
+            font-size: clamp(28px, 5vw, 72px); /* крупнее вдвое */
             margin: 0;
             z-index: 9;
         }
 
-        /* Осталось: секунды — прямо под графиком по центру */
+        /* Секунды обратного отсчёта: между «До» и «После» */
         .fs #duration {
-            grid-area: graph;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 4px;
-            font-size: clamp(12px, 1.6vw, 22px);
+            grid-column: 1 / span 2; /* на всю ширину ряда */
+            grid-row: 3; /* ряд метрик */
+            justify-self: center;
+            align-self: end;
+            position: static;
+            font-size: clamp(14px, 1.8vw, 26px);
             color: #233538;
-            margin: 0;
+            margin-top: 6px;
         }
         .fs #duration { font-size: clamp(16px, 2vw, 28px); opacity: 0.9; }
 
@@ -477,6 +478,7 @@
             } catch(e) {}
             if (!isMeasuring) {
                 startMeter();
+                toggleBtn.disabled = true; // сразу блокируем до окончания измерения
             }
         });
 
@@ -555,7 +557,7 @@
                 sumRms2 = 0;
                 countFrames = 0;
                 avgElement.textContent = 'Среднее: -- dB';
-                durationElement.textContent = 'Длительность: 10 секунд';
+                durationElement.textContent = `${measurementLimitSec}`;
                 diffElement.textContent = 'Разница: -- dB';
                 startTimeMs = Date.now();
                 endTimeMs = startTimeMs + measurementLimitSec * 1000;
@@ -616,7 +618,7 @@
                     else avgAfterEl.textContent = `После: ${avgDisplayed.toFixed(1)} dB`;
                     const elapsed = Math.floor((Date.now() - startTimeMs) / 1000);
                     const remaining = Math.max(0, measurementLimitSec - elapsed);
-                    durationElement.textContent = `Осталось: ${remaining}`;
+                    durationElement.textContent = `${remaining}`;
                     if (Date.now() >= endTimeMs) {
                         stopMeter();
                         return;
@@ -677,6 +679,7 @@
                 toggleBtn.textContent = 'Старт (новый цикл)';
             }
             toggleBtn.disabled = false;
+            toggleBtn.classList.remove('stop');
             deviceList.style.display = 'none';
 
             // Сбрасываем флаг измерения ДО обработки итогов, чтобы живая линия не рисовалась
@@ -758,10 +761,11 @@
             avgBeforeEl.textContent = 'До: -- dB';
             avgAfterEl.textContent = 'После: -- dB';
             diffElement.textContent = 'Разница: -- dB';
-            durationElement.textContent = 'Осталось: 10';
+            durationElement.textContent = `${measurementLimitSec}`;
             statusElement.textContent = 'Готов к измерению. Нажмите «Старт»';
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
+            toggleBtn.disabled = false; // гарантируем, что старт снова активен
             // Очистка графика
             try {
                 const rect = freqCanvas.getBoundingClientRect();
