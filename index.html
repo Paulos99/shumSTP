@@ -42,6 +42,32 @@
             border: 1px solid rgba(1, 100, 79, 0.08);
             box-sizing: border-box;
         }
+        /* Принудительный полноэкранный режим при активном fullscreen */
+        .fs #app {
+            width: 100vw;
+            height: 100dvh;
+            max-width: none;
+            max-height: none;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 28px 36px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            gap: 12px;
+        }
+        .fs #spectrumWrap {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .fs #freqCanvas {
+            height: 50vh;
+            max-height: none;
+            min-height: 260px;
+        }
         h1 {
             margin-top: 0;
             color: var(--accent);
@@ -190,6 +216,37 @@
             button { padding: 14px 29px; font-size: clamp(11px, 3vw, 24px); }
         }
 
+        /* Планшеты с высокой плотностью (например, 2560x1600 с DPR≈2 -> 1280x800 CSS) */
+        @media (min-width: 1000px) and (min-height: 700px) and (orientation: landscape) {
+            html, body { height: 100dvh; }
+            body { min-height: 100dvh; height: 100dvh; overflow: hidden; }
+            #app {
+                width: 100vw;
+                height: 100dvh;
+                max-width: none;
+                max-height: none;
+                border-radius: 0;
+                box-shadow: none;
+                padding: 28px 36px;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: flex-start;
+                gap: 12px;
+            }
+            #spectrumWrap {
+                flex: 1 1 auto;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            #freqCanvas {
+                height: 50vh;
+                max-height: none;
+                min-height: 260px;
+            }
+        }
+
         /* НОВЫЕ СТИЛИ ДЛЯ ПЛАНШЕТА С РАЗРЕШЕНИЕМ 2560x1600 */
         @media (min-width: 2000px) and (min-height: 1200px) and (orientation: landscape) {
             html, body { height: 100dvh; }
@@ -315,17 +372,39 @@
             try {
                 if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
+                    document.documentElement.classList.add('fs');
                 }
             } catch(e) {}
             if (!isMeasuring) {
                 startMeter();
             }
         });
+
+        document.addEventListener('fullscreenchange', () => {
+            const isFs = !!document.fullscreenElement;
+            document.documentElement.classList.toggle('fs', isFs);
+            setTimeout(initFreqCanvas, 100);
+        });
         resetBtn.addEventListener('click', hardReset);
         
         async function startMeter() {
             try {
                 statusElement.textContent = 'Запрашиваем доступ к микрофону...';
+                // Новый цикл начинается, когда фаза ДО и нажали старт заново — очищаем старые графики/значения
+                if (measurementPhase === 'before') {
+                    beforeSmoothed = null;
+                    afterSmoothed = null;
+                    avgBeforeVal = null;
+                    avgAfterVal = null;
+                    avgBeforeEl.textContent = 'До: -- dB';
+                    avgAfterEl.textContent = 'После: -- dB';
+                    diffElement.textContent = 'Разница: -- dB';
+                    try {
+                        const rect = freqCanvas.getBoundingClientRect();
+                        freqCtx.fillStyle = '#ffffff';
+                        freqCtx.fillRect(0, 0, rect.width, rect.height);
+                    } catch(e) {}
+                }
 
                 // Получаем список устройств ввода
                 const devices = await navigator.mediaDevices.enumerateDevices();
