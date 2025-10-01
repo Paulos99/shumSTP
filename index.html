@@ -63,11 +63,23 @@
             gap: 10px 16px;
             align-items: start;
         }
-        .fs #spectrumWrap { grid-area: graph; }
+        .fs #spectrumWrap { grid-area: graph; position: relative; }
         .fs #freqCanvas { height: 46vh; max-height: none; min-height: 280px; }
 
         .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0; letter-spacing: 0.6px; }
-        .fs #status { grid-area: status; font-size: clamp(14px, 1.6vw, 22px); margin: 0 0 6px 0; color: #486267; }
+        /* Статус поверх графика, у верхней кромки канваса */
+        .fs #status {
+            grid-area: graph;
+            position: absolute;
+            top: 8px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: clamp(12px, 1.4vw, 20px);
+            margin: 0;
+            color: #486267;
+            pointer-events: none;
+        }
 
         /* Метрики ДО/ПОСЛЕ очень крупно, по сторонам */
         .fs #avgBefore { grid-area: metricsL; justify-self: start; align-self: center; }
@@ -81,7 +93,16 @@
         .fs #avgBefore { text-align: left; }
         .fs #avgAfter { text-align: right; }
 
-        .fs #diff { grid-area: diff; font-size: clamp(22px, 3vw, 42px); margin-top: 4px; }
+        /* Разница по центру, между кнопками внизу */
+        .fs #diff {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 64px;
+            font-size: clamp(18px, 2.6vw, 36px);
+            margin: 0;
+            z-index: 9;
+        }
         .fs #duration { font-size: clamp(16px, 2vw, 28px); opacity: 0.9; }
 
         /* Кнопки: компактные, закреплены внизу справа */
@@ -454,8 +475,14 @@
             setTimeout(initFreqCanvas, 100);
         });
         resetBtn.addEventListener('click', () => {
-            // Кнопка «Стоп»: останавливает текущее измерение, не стирая историю фаз
-            stopMeter();
+            const label = resetBtn.textContent.trim();
+            if (label === 'Стоп') {
+                // Остановить текущее измерение
+                stopMeter();
+                return;
+            }
+            // «Сброс»: полностью очищает измерения и графики, но ничего не запускает
+            hardReset();
         });
         
         async function startMeter() {
