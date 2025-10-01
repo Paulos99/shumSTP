@@ -245,8 +245,8 @@
         let currentFftSize = 2048;
         // Два этапа измерения: до/после
         let measurementPhase = 'before'; // 'before' | 'after'
-        // Медианное сглаживание спектра по окну из 50 кадров
-        const SMOOTH_WINDOW = 50;
+        // Медианное сглаживание спектра по окну из 80 кадров
+        const SMOOTH_WINDOW = 80;
         let spectrumBuffer = [];
         let currentSmoothed = null;
         let beforeSmoothed = null;
