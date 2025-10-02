@@ -250,6 +250,13 @@
             display: block;
         }
         
+        /* Убрать ограничения в fullscreen */
+        .fs #freqCanvas {
+            height: 100% !important;
+            max-height: none !important;
+            min-height: none !important;
+        }
+        
         #avg.highlight {
             font-size: 48px;
             font-weight: bold;
@@ -339,10 +346,10 @@
         }
 
         @media (orientation: landscape) and (max-height: 520px) {
-            #freqCanvas { height: 40vh; min-height: 140px; }
-            #app { max-width: 680px; }
-            .row { gap: 6px; }
-            button { padding: 14px 29px; font-size: clamp(11px, 3vw, 24px); }
+            html:not(.fs) #freqCanvas { height: 40vh; min-height: 140px; }
+            html:not(.fs) #app { max-width: 680px; }
+            html:not(.fs) .row { gap: 6px; }
+            html:not(.fs) button { padding: 14px 29px; font-size: clamp(11px, 3vw, 24px); }
         }
 
 
@@ -384,7 +391,7 @@
                 z-index: 1000;
             }
             #spectrumWrap { grid-area: graph; position: relative; }
-            #freqCanvas { height: 100%; max-height: none; min-height: none; }
+            #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; }
             
             .bottom-area {
                 grid-area: bottom;
