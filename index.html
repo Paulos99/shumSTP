@@ -498,7 +498,7 @@
             </div>
             <div class="controls-panel">
                 <div id="diff">Разница: -- dB</div>
-                <div id="duration">10 секунд</div>
+                <div id="duration">10</div>
                 <div class="row">
                     <button id="toggleBtn">Старт</button>
                     <button id="resetBtn">Стоп</button>
@@ -768,7 +768,7 @@
                 sumRms2 = 0;
                 countFrames = 0;
                 avgElement.textContent = 'Среднее: -- dB';
-                durationElement.textContent = `${measurementLimitSec} секунд`;
+                durationElement.textContent = `${measurementLimitSec}`;
                 diffElement.textContent = 'Разница: -- dB';
                 startTimeMs = Date.now();
                 endTimeMs = startTimeMs + measurementLimitSec * 1000;
@@ -891,7 +891,7 @@
             if (measurementPhase === 'before') {
                 toggleBtn.textContent = 'Старт (после)';
             } else {
-                toggleBtn.textContent = 'Старт (новый цикл)';
+                toggleBtn.textContent = 'Заново';
             }
             toggleBtn.disabled = false;
             toggleBtn.classList.remove('stop');
@@ -941,12 +941,9 @@
             // Переключаем фазу и управляем подписями кнопок
             if (measurementPhase === 'before') {
                 measurementPhase = 'after';
-                toggleBtn.textContent = 'Старт (после)';
                 resetBtn.textContent = 'Стоп';
             } else {
                 measurementPhase = 'before';
-                // Второе завершение — предлагаем начать заново и сбросить
-                toggleBtn.textContent = 'Заново';
                 resetBtn.textContent = 'Сброс';
             }
         }
@@ -979,11 +976,13 @@
             avgBeforeEl.textContent = 'До: -- dB';
             avgAfterEl.textContent = 'После: -- dB';
             diffElement.textContent = 'Разница: -- dB';
-            durationElement.textContent = `${measurementLimitSec} секунд`;
+            durationElement.textContent = `${measurementLimitSec}`;
             statusElement.textContent = 'Готов к измерению. Нажмите «Старт»';
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
             toggleBtn.disabled = false; // гарантируем, что старт снова активен
+            resetBtn.textContent = 'Стоп';
+            resetBtn.disabled = false;
             // Очистка графика
             try {
                 const rect = freqCanvas.getBoundingClientRect();
