@@ -75,18 +75,18 @@
             justify-self: start; 
             align-self: start;
             text-align: left; 
-            font-size: 72px;
+            font-size: 100px;
             font-weight: bold;
-            margin: 0 0 10px 0;
+            margin: -80px 0 0 0; /* поднимаем ещё выше на 20px */
         }
         .fs #avgAfter { 
             grid-area: metricsL; 
             justify-self: start; 
             align-self: end;
             text-align: left; 
-            font-size: 72px;
+            font-size: 100px;
             font-weight: bold;
-            margin: 0;
+            margin: 0px 0 0 0; /* опускаем ниже */
         }
 
         /* Панель управления справа */
@@ -102,21 +102,21 @@
             z-index: 9;
         }
 
-        /* Разница над таймером */
+        /* Разница над таймером, левее и крупнее */
         .fs #diff {
             text-align: right;
-            font-size: 30px;
+            font-size: 36px; /* увеличен на 20% от 30px */
             font-weight: 400;
-            margin: 0;
+            margin: 0 40px 0 0; /* сдвигаем левее */
             color: #333;
         }
 
-        /* Таймер над кнопками */
+        /* Таймер на месте разницы */
         .fs #duration {
             font-size: clamp(14px, 2vw, 24px);
             color: #666;
             text-align: right;
-            margin: 0;
+            margin: 0 40px 0 0; /* сдвигаем левее как разницу */
         }
 
         /* Кнопки в правом нижнем углу, на одной линии */
