@@ -52,13 +52,12 @@
             box-shadow: none;
             padding: 20px 40px 40px 40px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr auto auto;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: 1fr auto;
             grid-template-areas:
-                'graph graph'
-                'metricsL metricsR'
-                'diff diff';
-            gap: 10px 16px;
+                'graph controls'
+                'metricsL controls';
+            gap: 10px 20px;
             align-items: start;
             position: relative;
         }
@@ -70,69 +69,69 @@
         /* Статус скрыт в fullscreen */
         .fs #status { display: none; }
 
-        /* Метрики ДО/ПОСЛЕ очень крупно, по сторонам */
-        .fs #avgBefore { grid-area: metricsL; justify-self: start; align-self: center; }
-        .fs #avgAfter { grid-area: metricsR; justify-self: end; align-self: center; }
-        .fs #avgBefore, .fs #avgAfter {
-            display: inline-block;
-            margin: 0;
-        }
+        /* Метрики ДО/ПОСЛЕ - "После" под "До" */
         .fs #avgBefore { 
+            grid-area: metricsL; 
+            justify-self: start; 
+            align-self: start;
             text-align: left; 
             font-size: clamp(20px, 3vw, 40px);
             font-weight: 500;
+            margin: 0 0 10px 0;
         }
         .fs #avgAfter { 
-            text-align: right; 
-            font-size: clamp(18px, 2.8vw, 36px);
-            font-weight: 700;
+            grid-area: metricsL; 
+            justify-self: start; 
+            align-self: end;
+            text-align: left; 
+            font-size: 50px;
+            font-weight: bold;
+            margin: 0;
         }
 
-        /* Разница смещена вправо, меньший размер */
-        .fs #diff {
-            grid-area: diff;
-            text-align: right;
-            font-size: clamp(16px, 2.5vw, 32px);
-            font-weight: 400;
-            margin: 5px 0 0 0;
-            color: #666;
-            justify-self: end;
-        }
-
-        /* Таймер под разницей, центрирован */
-        .fs #duration {
-            grid-area: diff;
-            position: absolute;
-            left: 50%;
-            top: 100%;
-            transform: translateX(-50%);
-            font-size: clamp(14px, 2vw, 24px);
-            color: #666;
-            text-align: center;
-            margin-top: 8px;
-            z-index: 9;
-        }
-
-        /* Кнопки: вертикально по центру, светлые */
-        .fs .row {
-            position: fixed;
-            left: 50%;
-            bottom: 20px;
-            transform: translateX(-50%);
+        /* Панель управления справа */
+        .fs .controls-panel {
+            grid-area: controls;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            align-items: flex-end;
+            justify-content: flex-end;
+            gap: 12px;
+            min-width: 200px;
+        }
+
+        /* Разница над таймером */
+        .fs #diff {
+            text-align: right;
+            font-size: 30px;
+            font-weight: 400;
+            margin: 0;
+            color: #333;
+        }
+
+        /* Таймер над кнопками */
+        .fs #duration {
+            font-size: clamp(14px, 2vw, 24px);
+            color: #666;
+            text-align: right;
+            margin: 0;
+        }
+
+        /* Кнопки в правом углу, на одной линии */
+        .fs .row {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
             align-items: center;
-            gap: 8px;
-            z-index: 10;
+            gap: 12px;
             pointer-events: none;
         }
         .fs .row button { pointer-events: auto; }
         .fs button { 
-            font-size: clamp(12px, 1.8vw, 20px); 
-            padding: 8px 16px; 
+            font-size: clamp(16px, 2.3vw, 26px); /* увеличен на 30% */
+            padding: 10px 20px; 
             border-radius: 6px;
-            min-width: 100px;
+            min-width: 120px;
             background-color: #01644f;
             color: #ffffff;
             border: none;
@@ -405,9 +404,13 @@
         <div id="avg" style="display:none">Среднее: -- dB</div>
         <div id="diff">Разница: -- dB</div>
         <div id="duration">Длительность: 10 секунд</div>
-        <div class="row">
-            <button id="toggleBtn">Старт</button>
-            <button id="resetBtn">Стоп</button>
+        <div class="controls-panel">
+            <div id="diff">Разница: -- dB</div>
+            <div id="duration">10 секунд</div>
+            <div class="row">
+                <button id="toggleBtn">Старт</button>
+                <button id="resetBtn">Стоп</button>
+            </div>
         </div>
         <select id="deviceList" style="display:none;"></select>
         <div id="history">
