@@ -79,9 +79,17 @@
             padding: 0 20px;
         }
         
-        /* Метрики ДО/ПОСЛЕ - левая колонка, крупно и жирно */
-        .fs #avgBefore { 
+        /* Колонка с измерениями - левая часть */
+        .fs .measurements-column {
             grid-column: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        
+        /* Метрики ДО/ПОСЛЕ - крупно и жирно */
+        .fs #avgBefore { 
             text-align: left; 
             font-size: 90px;
             font-weight: 900;
@@ -90,7 +98,6 @@
             line-height: 1.1;
         }
         .fs #avgAfter { 
-            grid-column: 1;
             text-align: left; 
             font-size: 90px;
             font-weight: 900;
@@ -388,9 +395,17 @@
                 padding: 0 25px;
             }
             
+            /* Колонка с измерениями для планшета */
+            .fs .measurements-column {
+                grid-column: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-start;
+            }
+            
             /* Метрики ДО/ПОСЛЕ для планшета - крупно и жирно */
             .fs #avgBefore { 
-                grid-column: 1;
                 text-align: left; 
                 font-size: 100px;
                 font-weight: 900;
@@ -399,7 +414,6 @@
                 line-height: 1.1;
             }
             .fs #avgAfter { 
-                grid-column: 1;
                 text-align: left; 
                 font-size: 100px;
                 font-weight: 900;
@@ -473,9 +487,11 @@
             <canvas id="freqCanvas"></canvas>
         </div>
         <div class="bottom-area">
-            <div id="avgBefore">До: -- dB</div>
-            <div id="avgAfter">После: -- dB</div>
-            <div id="avg" style="display:none">Среднее: -- dB</div>
+            <div class="measurements-column">
+                <div id="avgBefore">До: -- dB</div>
+                <div id="avgAfter">После: -- dB</div>
+                <div id="avg" style="display:none">Среднее: -- dB</div>
+            </div>
             <div class="controls-panel">
                 <div id="diff">Разница: -- dB</div>
                 <div id="duration">10 секунд</div>
@@ -536,11 +552,116 @@
         let avgAfterVal = null;
         const measurementLimitSec = 10;
         let endTimeMs = 0;
+        
+        // Генератор белого шума
+        let noiseContext = null;
+        let noiseSource = null;
+        let noiseGain = null;
+        let isNoisePlaying = false;
 
         // Проверка поддержки getUserMedia
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             statusElement.textContent = 'Ваш браузер не поддерживает доступ к микрофону.';
             toggleBtn.disabled = true;
+        }
+
+        // Функции для работы с улучшенным белым шумом
+        function createWhiteNoise() {
+            if (noiseContext) return;
+            
+            noiseContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Создаем источник белого шума
+            const bufferSize = 2 * noiseContext.sampleRate; // 2 секунды буфера
+            const noiseBuffer = noiseContext.createBuffer(1, bufferSize, noiseContext.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            
+            // Создаем улучшенный шум с акцентом на низкие частоты
+            for (let i = 0; i < bufferSize; i++) {
+                // Базовый белый шум
+                let sample = Math.random() * 2 - 1;
+                
+                // Добавляем низкочастотный компонент (100-400 Гц) - уменьшенный акцент
+                const time = i / noiseContext.sampleRate;
+                const lowFreq1 = Math.sin(2 * Math.PI * 100 * time) * 0.15; // 100 Гц - уменьшено
+                const lowFreq2 = Math.sin(2 * Math.PI * 200 * time) * 0.1; // 200 Гц - уменьшено
+                const lowFreq3 = Math.sin(2 * Math.PI * 300 * time) * 0.08; // 300 Гц - уменьшено
+                const lowFreq4 = Math.sin(2 * Math.PI * 400 * time) * 0.05; // 400 Гц - уменьшено
+                
+                // Комбинируем белый шум с низкочастотными компонентами - больше белого шума
+                sample = (sample * 0.8) + (lowFreq1 + lowFreq2 + lowFreq3 + lowFreq4);
+                
+                // Ограничиваем амплитуду
+                output[i] = Math.max(-1, Math.min(1, sample));
+            }
+            
+            // Создаем источник и gain node
+            noiseSource = noiseContext.createBufferSource();
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.loop = true; // зацикливаем шум
+            
+            noiseGain = noiseContext.createGain();
+            noiseGain.gain.value = 0; // начинаем с нулевой громкости
+            
+            // Создаем фильтр для дополнительного акцента на низких частотах
+            const lowpassFilter = noiseContext.createBiquadFilter();
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.value = 800; // обрезаем высокие частоты
+            lowpassFilter.Q.value = 0.5; // мягкий спад
+            
+            // Создаем фильтр высоких частот для более глубокого звука
+            const highpassFilter = noiseContext.createBiquadFilter();
+            highpassFilter.type = 'highpass';
+            highpassFilter.frequency.value = 50; // обрезаем очень низкие частоты
+            
+            // Подключаем цепочку: источник -> highpass -> lowpass -> gain -> выход
+            noiseSource.connect(highpassFilter);
+            highpassFilter.connect(lowpassFilter);
+            lowpassFilter.connect(noiseGain);
+            noiseGain.connect(noiseContext.destination);
+        }
+
+        function startWhiteNoise() {
+            if (isNoisePlaying) return;
+            
+            createWhiteNoise();
+            
+            if (noiseContext.state === 'suspended') {
+                noiseContext.resume();
+            }
+            
+            if (noiseSource && noiseGain) {
+                // Запускаем источник
+                noiseSource.start();
+                isNoisePlaying = true;
+                
+                // Плавное зажигание за 2 секунды
+                const currentTime = noiseContext.currentTime;
+                noiseGain.gain.setValueAtTime(0, currentTime); // начинаем с 0
+                noiseGain.gain.linearRampToValueAtTime(1.0, currentTime + 2.0); // доходим до максимума за 2 сек
+                
+                console.log('Белый шум запущен с плавным зажиганием');
+            }
+        }
+
+        function stopWhiteNoise() {
+            if (!isNoisePlaying) return;
+            
+            if (noiseSource) {
+                try {
+                    noiseSource.stop();
+                    isNoisePlaying = false;
+                    console.log('Белый шум остановлен');
+                } catch(e) {
+                    console.warn('Ошибка остановки шума:', e);
+                    isNoisePlaying = false;
+                }
+            }
+            
+            // Создаем новый источник для следующего запуска
+            if (noiseContext && noiseContext.state !== 'closed') {
+                createWhiteNoise();
+            }
         }
 
         // Экран запуска
@@ -636,6 +757,8 @@
                 statusElement.textContent = measurementPhase === 'before' ? 'Измерение ДО...' : 'Измерение ПОСЛЕ...';
                 toggleBtn.disabled = true;
                 
+                // Запускаем белый шум на время измерения
+                startWhiteNoise();
 
                 // Сброс накопителей для нового замера
                 sumRms2 = 0;
@@ -755,6 +878,10 @@
             if (navigator.mediaDevices) {
                 navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList);
             }
+            
+            // Останавливаем белый шум
+            stopWhiteNoise();
+            
             statusElement.textContent = 'Измерение остановлено.';
             // Определяем следующий шаг для кнопки
             if (measurementPhase === 'before') {
@@ -829,6 +956,9 @@
                 try { navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList); } catch(e) {}
                 isMeasuring = false;
             }
+            
+            // Останавливаем белый шум
+            stopWhiteNoise();
             // Сброс всех данных
             beforeSmoothed = null;
             afterSmoothed = null;
