@@ -66,8 +66,20 @@
 
         /* Заголовок скрыт в fullscreen */
         .fs h1 { display: none; }
-        /* Статус скрыт в fullscreen */
-        .fs #status { display: none; }
+        /* Статус видим в fullscreen */
+        .fs #status { 
+            display: block; 
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
 
         /* Нижняя область - правильная структура */
         .fs .bottom-area {
@@ -716,8 +728,9 @@
         async function startMeter() {
             // Визуальная индикация запуска
             statusElement.style.color = '#ff6b6b';
+            statusElement.textContent = 'Запуск измерения...';
+            
             try {
-                statusElement.textContent = 'Запрашиваем доступ к микрофону...';
                 // Новый цикл начинается, когда фаза ДО и нажали старт заново — очищаем старые графики/значения
                 if (measurementPhase === 'before') {
                     beforeSmoothed = null;
@@ -739,6 +752,9 @@
                 const selectedDeviceId = undefined;
                 deviceLabel = '';
 
+                // Обновляем статус
+                statusElement.textContent = 'Запрашиваем доступ к микрофону...';
+                
                 // Запрашиваем доступ к микрофону
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -750,6 +766,9 @@
                     }
                 });
 
+                // Обновляем статус
+                statusElement.textContent = 'Настраиваем аудио...';
+                
                 // Создаем AudioContext
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser();
@@ -763,6 +782,9 @@
                 microphone = audioContext.createMediaStreamSource(stream);
                 microphone.connect(analyser);
 
+                // Обновляем статус
+                statusElement.textContent = 'Запускаем обработку...';
+                
                 // Используем AnalyserNode для получения данных
                 processAudio();
 
@@ -806,6 +828,11 @@
             } catch (err) {
                 console.error('Ошибка:', err);
                 statusElement.textContent = `Ошибка: ${err.message || 'Не удалось получить доступ к микрофону.'}`;
+                statusElement.style.color = '#e53935';
+                
+                // Разблокируем кнопку при ошибке
+                toggleBtn.disabled = false;
+                toggleBtn.style.backgroundColor = '#01644f';
             }
         }
 
