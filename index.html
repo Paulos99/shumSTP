@@ -69,8 +69,10 @@
             margin: 0 !important;
             background: transparent !important;
             border-radius: 0 !important;
+            height: 100% !important;
+            width: 100% !important;
         }
-        .fs #freqCanvas { height: 100%; max-height: none; min-height: none; }
+        .fs #freqCanvas { height: 100% !important; width: 100% !important; max-height: none !important; min-height: none !important; }
 
         /* Заголовок скрыт в fullscreen */
         .fs h1 { display: none; }
@@ -96,7 +98,7 @@
         .fs .bottom-area {
             grid-area: bottom;
             display: grid;
-            grid-template-columns: 60% 40%;
+            grid-template-columns: 56% 44%;
             grid-template-rows: 1fr;
             gap: 40px;
             align-items: center;
@@ -116,7 +118,7 @@
         /* Метрики ДО/ПОСЛЕ - крупно и жирно */
         .fs #avgBefore { 
             text-align: left; 
-            font-size: 90px;
+            font-size: 81px;
             font-weight: 900;
             margin: 40px 0 0 0;
             color: var(--danger);
@@ -124,7 +126,7 @@
         }
         .fs #avgAfter { 
             text-align: left; 
-            font-size: 90px;
+            font-size: 81px;
             font-weight: 900;
             margin: 50px 0 0 0;
             color: var(--accent);
@@ -406,13 +408,15 @@
                 margin: 0 !important;
                 background: transparent !important;
                 border-radius: 0 !important;
+                height: 100% !important;
+                width: 100% !important;
             }
             .fs #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; width: 100% !important; }
             
             .bottom-area {
                 grid-area: bottom;
                 display: grid;
-                grid-template-columns: 60% 40%;
+                grid-template-columns: 56% 44%;
                 grid-template-rows: 1fr;
                 gap: 40px;
                 align-items: center;
@@ -430,7 +434,7 @@
             
             #avgBefore { 
                 text-align: left; 
-                font-size: 90px;
+                font-size: 81px;
                 font-weight: 900;
                 margin: 40px 0 0 0;
                 color: var(--danger);
@@ -438,7 +442,7 @@
             }
             #avgAfter { 
                 text-align: left; 
-                font-size: 90px;
+                font-size: 81px;
                 font-weight: 900;
                 margin: 50px 0 0 0;
                 color: var(--accent);
@@ -1121,6 +1125,9 @@
             if (!freqCtx) return;
             const dpr = window.devicePixelRatio || 1;
             const rect = freqCanvas.getBoundingClientRect();
+            console.log('Canvas rect:', rect.width, 'x', rect.height);
+            console.log('Window size:', window.innerWidth, 'x', window.innerHeight);
+            console.log('Fullscreen:', !!document.fullscreenElement);
             freqCanvas.width = Math.floor(rect.width * dpr);
             freqCanvas.height = Math.floor(rect.height * dpr);
             freqCtx.setTransform(1, 0, 0, 1, 0, 0);
