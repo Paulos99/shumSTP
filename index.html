@@ -88,7 +88,7 @@
         .fs .bottom-area {
             grid-area: bottom;
             display: grid;
-            grid-template-columns: 65% 35%;
+            grid-template-columns: 60% 40%;
             grid-template-rows: 1fr;
             gap: 40px;
             align-items: center;
@@ -345,36 +345,6 @@
             button { padding: 14px 29px; font-size: clamp(11px, 3vw, 24px); }
         }
 
-        /* Планшеты с высокой плотностью (например, 2560x1600 с DPR≈2 -> 1280x800 CSS) */
-        @media (min-width: 1000px) and (min-height: 700px) and (orientation: landscape) {
-            html, body { height: 100dvh; }
-            body { min-height: 100dvh; height: 100dvh; overflow: hidden; }
-            #app {
-                width: 100vw;
-                height: 100dvh;
-                max-width: none;
-                max-height: none;
-                border-radius: 0;
-                box-shadow: none;
-                padding: 28px 36px;
-                display: flex;
-                flex-direction: column;
-                align-items: stretch;
-                justify-content: flex-start;
-                gap: 12px;
-            }
-            #spectrumWrap {
-                flex: 1 1 auto;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
-            #freqCanvas {
-                height: 50vh;
-                max-height: none;
-                min-height: 260px;
-            }
-        }
 
         /* НОВЫЕ СТИЛИ ДЛЯ ПЛАНШЕТА С РАЗРЕШЕНИЕМ 2560x1600 */
         @media (min-width: 2000px) and (min-height: 1200px) and (orientation: landscape) {
@@ -419,7 +389,7 @@
             .bottom-area {
                 grid-area: bottom;
                 display: grid;
-                grid-template-columns: 65% 35%;
+                grid-template-columns: 60% 40%;
                 grid-template-rows: 1fr;
                 gap: 40px;
                 align-items: center;
