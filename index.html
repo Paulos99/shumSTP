@@ -75,8 +75,8 @@
             justify-self: start; 
             align-self: start;
             text-align: left; 
-            font-size: clamp(20px, 3vw, 40px);
-            font-weight: 500;
+            font-size: 72px;
+            font-weight: bold;
             margin: 0 0 10px 0;
         }
         .fs #avgAfter { 
@@ -84,20 +84,22 @@
             justify-self: start; 
             align-self: end;
             text-align: left; 
-            font-size: 50px;
+            font-size: 72px;
             font-weight: bold;
             margin: 0;
         }
 
         /* Панель управления справа */
         .fs .controls-panel {
-            grid-area: controls;
+            position: fixed;
+            right: 20px;
+            bottom: 80px;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             justify-content: flex-end;
-            gap: 12px;
-            min-width: 200px;
+            gap: 8px;
+            z-index: 9;
         }
 
         /* Разница над таймером */
@@ -117,14 +119,18 @@
             margin: 0;
         }
 
-        /* Кнопки в правом углу, на одной линии */
+        /* Кнопки в правом нижнем углу, на одной линии */
         .fs .row {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
             display: flex;
             flex-direction: row;
             justify-content: flex-end;
             align-items: center;
             gap: 12px;
             pointer-events: none;
+            z-index: 10;
         }
         .fs .row button { pointer-events: auto; }
         .fs button { 
@@ -402,8 +408,6 @@
         <div id="avgBefore">До: -- dB</div>
         <div id="avgAfter">После: -- dB</div>
         <div id="avg" style="display:none">Среднее: -- dB</div>
-        <div id="diff">Разница: -- dB</div>
-        <div id="duration">Длительность: 10 секунд</div>
         <div class="controls-panel">
             <div id="diff">Разница: -- dB</div>
             <div id="duration">10 секунд</div>
