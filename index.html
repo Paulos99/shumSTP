@@ -50,128 +50,95 @@
             max-height: none;
             border-radius: 0;
             box-shadow: none;
-            padding: 20px;
+            padding: 6px 32px 110px 32px; /* ещё чуть выше контент */
             display: grid;
-            grid-template-columns: 1fr;
-            grid-template-rows: 2fr 1fr;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto auto 1fr auto;
             grid-template-areas:
-                'graph'
-                'bottom';
-            gap: 20px;
-            align-items: stretch;
+                'title title'
+                'graph graph'
+                'metricsL metricsR'
+                'status status'
+                'diff diff';
+            gap: 10px 16px;
+            align-items: start;
             position: relative;
         }
-        .fs #spectrumWrap { grid-area: graph; position: relative; }
-        .fs #freqCanvas { height: 100%; max-height: none; min-height: none; }
+        .fs #spectrumWrap { grid-area: graph; position: relative; padding-bottom: 32px; margin-top: -8px; }
+        .fs #freqCanvas { height: 46vh; max-height: none; min-height: 280px; }
 
-        /* Заголовок скрыт в fullscreen */
-        .fs h1 { display: none; }
-        /* Статус видим в fullscreen */
-        .fs #status { 
-            display: block; 
-            position: fixed;
-            top: 20px;
+        .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0 0 4px 0; letter-spacing: 0.6px; }
+        /* Статус поверх графика, у верхней кромки канваса */
+        .fs #status {
+            grid-area: graph;
+            position: absolute;
+            top: 8px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 18px;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        /* Нижняя область - правильная структура */
-        .fs .bottom-area {
-            grid-area: bottom;
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            grid-template-rows: 1fr;
-            gap: 40px;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        /* Левая колонка - измерения */
-        .fs .measurements-column {
-            grid-column: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 20px;
-        }
-        
-        /* Метрики ДО/ПОСЛЕ - крупно и жирно */
-        .fs #avgBefore { 
-            text-align: left; 
-            font-size: 90px;
-            font-weight: 900;
+            font-size: clamp(12px, 1.4vw, 20px);
             margin: 0;
-            color: var(--danger);
-            line-height: 1.1;
+            color: #486267;
+            pointer-events: none;
         }
-        .fs #avgAfter { 
-            text-align: left; 
-            font-size: 90px;
+
+        /* Метрики ДО/ПОСЛЕ очень крупно, по сторонам */
+        .fs #avgBefore { grid-area: metricsL; justify-self: start; align-self: center; }
+        .fs #avgAfter { grid-area: metricsR; justify-self: end; align-self: center; }
+        .fs #avgBefore, .fs #avgAfter {
+            display: inline-block;
+            font-size: clamp(44px, 6.2vw, 120px);
             font-weight: 900;
-            margin: 10px 0 0 0;
-            color: var(--accent);
-            line-height: 1.1;
+            margin: -4px 0 0 0; /* чуть выше */
         }
+        .fs #avgBefore { text-align: left; }
+        .fs #avgAfter { text-align: right; }
 
-        /* Правая колонка - управление */
-        .fs .controls-panel {
-            grid-column: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            justify-content: center;
-            gap: 20px;
-            padding: 0;
-        }
-
-        /* Разница справа */
+        /* Разница по центру, между кнопками внизу */
         .fs #diff {
-            text-align: right;
-            font-size: 32px;
-            font-weight: 700;
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 12px; /* на одной линии с кнопками */
+            font-size: clamp(28px, 5vw, 72px); /* крупнее вдвое */
             margin: 0;
-            color: #585858;
+            z-index: 9;
+            white-space: nowrap; /* не переносить строки */
+            min-width: 60vw; /* расширить поле для больших значений */
+            text-align: center;
+            overflow-x: auto; /* горизонтальный скролл при необходимости */
+            padding: 0 20px;
         }
 
-        /* Секундомер справа */
+        /* Секунды обратного отсчёта: между «До» и «После» */
         .fs #duration {
-            font-size: 28px;
-            color: #666;
-            text-align: right;
-            margin: 0;
-            font-weight: 600;
+            grid-column: 1 / span 2; /* на всю ширину ряда */
+            grid-row: 3; /* ряд метрик */
+            justify-self: center;
+            align-self: end;
+            position: static;
+            font-size: clamp(14px, 1.8vw, 26px);
+            color: #233538;
+            margin-top: 6px;
         }
+        .fs #duration { font-size: clamp(16px, 2vw, 28px); opacity: 0.9; }
 
-        /* Кнопки в одну линию */
+        /* Кнопки: компактные, закреплены внизу справа */
         .fs .row {
+            position: fixed;
+            left: 24px;
+            right: 24px;
+            bottom: 12px; /* ниже, ближе к краю экрана */
             display: flex;
-            flex-direction: row;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
-            gap: 15px;
-            margin: 0;
+            gap: 12px;
+            z-index: 10;
+            pointer-events: none; /* контейнер не ловит клики, только кнопки */
         }
-        .fs button { 
-            font-size: 22px;
-            padding: 15px 25px; 
-            border-radius: 10px;
-            min-width: 200px;
-            background-color: #01644f;
-            color: #ffffff;
-            border: none;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .fs button:hover {
-            background-color: #014d3d;
-        }
+        .fs .row button { pointer-events: auto; }
+        .fs #toggleBtn { align-self: flex-end; }
+        .fs #resetBtn { align-self: flex-end; }
+        .fs button { font-size: clamp(16px, 2.2vw, 28px); padding: 14px 24px; border-radius: 12px; }
 
         /* Экран запуска вне fullscreen */
         #launchOverlay {
@@ -374,7 +341,7 @@
             }
         }
 
-        /* СТИЛИ ДЛЯ ПЛАНШЕТА 11 ДЮЙМОВ (2560x1600) */
+        /* НОВЫЕ СТИЛИ ДЛЯ ПЛАНШЕТА С РАЗРЕШЕНИЕМ 2560x1600 */
         @media (min-width: 2000px) and (min-height: 1200px) and (orientation: landscape) {
             html, body { height: 100dvh; }
             body { min-height: 100dvh; height: 100dvh; overflow: hidden; }
@@ -385,105 +352,33 @@
                 max-height: none;
                 border-radius: 0;
                 box-shadow: none;
-                padding: 25px;
-                display: grid;
-                grid-template-columns: 1fr;
-                grid-template-rows: 2fr 1fr;
-                grid-template-areas:
-                    'graph'
-                    'bottom';
-                gap: 25px;
+                padding: 32px 40px;
+                display: flex;
+                flex-direction: column;
                 align-items: stretch;
-                position: relative;
+                justify-content: flex-start;
+                gap: 12px;
             }
-            .fs #spectrumWrap { grid-area: graph; position: relative; }
-            .fs #freqCanvas { height: 100%; max-height: none; min-height: none; }
-            
-            /* Нижняя область для планшета */
-            .fs .bottom-area {
-                grid-area: bottom;
-                display: grid;
-                grid-template-columns: 1.2fr 0.8fr;
-                grid-template-rows: 1fr;
-                gap: 60px;
-                align-items: center;
-                padding: 30px;
+            h1 {
+                font-size: 56px;
+                margin: 0 0 8px 0;
             }
-            
-            /* Левая колонка - измерения для планшета */
-            .fs .measurements-column {
-                grid-column: 1;
+            #status { font-size: 28px; margin: 6px 0 10px 0; }
+            #avgBefore, #avgAfter { font-size: 40px; }
+            #diff { font-size: 32px; }
+            #duration { font-size: 24px; }
+            .row { gap: 12px; }
+            button { font-size: 24px; padding: 20px 40px; }
+            #spectrumWrap {
+                flex: 1 1 auto;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                align-items: flex-start;
-                gap: 30px;
             }
-            
-            /* Метрики ДО/ПОСЛЕ для планшета - крупно и жирно */
-            .fs #avgBefore { 
-                text-align: left; 
-                font-size: 100px;
-                font-weight: 900;
-                margin: 0;
-                color: var(--danger);
-                line-height: 1.1;
-            }
-            .fs #avgAfter { 
-                text-align: left; 
-                font-size: 100px;
-                font-weight: 900;
-                margin: 15px 0 0 0;
-                color: var(--accent);
-                line-height: 1.1;
-            }
-            
-            /* Правая колонка - управление для планшета */
-            .fs .controls-panel {
-                grid-column: 2;
-                display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-                justify-content: center;
-                gap: 25px;
-                padding: 0;
-            }
-            
-            .fs #diff {
-                text-align: right;
-                font-size: 36px;
-                font-weight: 700;
-                margin: 0;
-                color: #585858;
-            }
-            
-            .fs #duration {
-                font-size: 32px;
-                color: #666;
-                text-align: right;
-                margin: 0;
-                font-weight: 600;
-            }
-            
-            .fs .row {
-                display: flex;
-                flex-direction: row;
-                justify-content: flex-end;
-                align-items: center;
-                gap: 20px;
-                margin: 0;
-            }
-            
-            .fs button { 
-                font-size: 24px;
-                padding: 18px 32px; 
-                border-radius: 12px;
-                min-width: 220px;
-                background-color: #01644f;
-                color: #ffffff;
-                border: none;
-                font-weight: bold;
-                text-transform: uppercase;
+            #freqCanvas {
+                height: 48vh;
+                max-height: none;
+                min-height: 260px;
             }
         }
 
@@ -502,20 +397,14 @@
         <div id="spectrumWrap">
             <canvas id="freqCanvas"></canvas>
         </div>
-        <div class="bottom-area">
-            <div class="measurements-column">
-                <div id="avgBefore">До: -- dB</div>
-                <div id="avgAfter">После: -- dB</div>
-                <div id="avg" style="display:none">Среднее: -- dB</div>
-            </div>
-            <div class="controls-panel">
-                <div id="diff">Разница: -- dB</div>
-                <div id="duration">10</div>
-                <div class="row">
-                    <button id="toggleBtn">Старт</button>
-                    <button id="resetBtn">Стоп</button>
-                </div>
-            </div>
+        <div id="avgBefore">До: -- dB</div>
+        <div id="avgAfter">После: -- dB</div>
+        <div id="avg" style="display:none">Среднее: -- dB</div>
+        <div id="diff">Разница: -- dB</div>
+        <div id="duration">Длительность: 10 секунд</div>
+        <div class="row">
+            <button id="toggleBtn">Старт</button>
+            <button id="resetBtn">Стоп</button>
         </div>
         <select id="deviceList" style="display:none;"></select>
         <div id="history">
@@ -655,8 +544,6 @@
                 const currentTime = noiseContext.currentTime;
                 noiseGain.gain.setValueAtTime(0, currentTime); // начинаем с 0
                 noiseGain.gain.linearRampToValueAtTime(1.0, currentTime + 2.0); // доходим до максимума за 2 сек
-                
-                console.log('Белый шум запущен с плавным зажиганием');
             }
         }
 
@@ -667,9 +554,7 @@
                 try {
                     noiseSource.stop();
                     isNoisePlaying = false;
-                    console.log('Белый шум остановлен');
                 } catch(e) {
-                    console.warn('Ошибка остановки шума:', e);
                     isNoisePlaying = false;
                 }
             }
@@ -691,12 +576,6 @@
         });
 
         toggleBtn.addEventListener('click', async () => {
-            // Визуальная индикация нажатия
-            toggleBtn.style.backgroundColor = '#ff6b6b';
-            setTimeout(() => {
-                toggleBtn.style.backgroundColor = '#01644f';
-            }, 200);
-            
             try {
                 if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
@@ -726,11 +605,8 @@
         });
         
         async function startMeter() {
-            // Визуальная индикация запуска
-            statusElement.style.color = '#ff6b6b';
-            statusElement.textContent = 'Запуск измерения...';
-            
             try {
+                statusElement.textContent = 'Запрашиваем доступ к микрофону...';
                 // Новый цикл начинается, когда фаза ДО и нажали старт заново — очищаем старые графики/значения
                 if (measurementPhase === 'before') {
                     beforeSmoothed = null;
@@ -752,9 +628,6 @@
                 const selectedDeviceId = undefined;
                 deviceLabel = '';
 
-                // Обновляем статус
-                statusElement.textContent = 'Запрашиваем доступ к микрофону...';
-                
                 // Запрашиваем доступ к микрофону
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -766,9 +639,6 @@
                     }
                 });
 
-                // Обновляем статус
-                statusElement.textContent = 'Настраиваем аудио...';
-                
                 // Создаем AudioContext
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser();
@@ -782,18 +652,15 @@
                 microphone = audioContext.createMediaStreamSource(stream);
                 microphone.connect(analyser);
 
-                // Обновляем статус
-                statusElement.textContent = 'Запускаем обработку...';
-                
                 // Используем AnalyserNode для получения данных
                 processAudio();
 
                 statusElement.textContent = measurementPhase === 'before' ? 'Измерение ДО...' : 'Измерение ПОСЛЕ...';
-                statusElement.style.color = measurementPhase === 'before' ? '#e53935' : '#01644f';
                 toggleBtn.disabled = true;
                 
                 // Запускаем белый шум на время измерения
                 startWhiteNoise();
+                
 
                 // Сброс накопителей для нового замера
                 sumRms2 = 0;
@@ -811,10 +678,6 @@
                     avgBeforeEl.textContent = 'До: -- dB';
                 } else {
                     avgAfterEl.textContent = 'После: -- dB';
-                    // При втором измерении показываем, что разница вычисляется
-                    if (avgBeforeVal !== null) {
-                        diffElement.textContent = 'Разница: вычисляется...';
-                    }
                 }
                 // Инициализируем канвас спектра под экран
                 initFreqCanvas();
@@ -828,11 +691,6 @@
             } catch (err) {
                 console.error('Ошибка:', err);
                 statusElement.textContent = `Ошибка: ${err.message || 'Не удалось получить доступ к микрофону.'}`;
-                statusElement.style.color = '#e53935';
-                
-                // Разблокируем кнопку при ошибке
-                toggleBtn.disabled = false;
-                toggleBtn.style.backgroundColor = '#01644f';
             }
         }
 
@@ -876,9 +734,20 @@
                     }
                 }
 
-                // Показываем статус разницы во время второго измерения
-                if (measurementPhase === 'after' && avgBeforeVal !== null) {
-                    diffElement.textContent = 'Разница: вычисляется...';
+                // Обновляем разницу (ПОСЛЕ - ДО) при второй фазе
+                if (measurementPhase === 'after') {
+                    const beforeVal = (avgBeforeVal !== null && !isNaN(avgBeforeVal)) ? avgBeforeVal : null;
+                    const currentMeanRms2 = (sumRms2 + rms * rms) / Math.max(1, countFrames + 1);
+                    const currentAvgDbFs = currentMeanRms2 > 0 ? 10 * Math.log10(currentMeanRms2) : -100;
+                    const currentAvgDisplay = Math.min(120, Math.max(0, currentAvgDbFs + 100));
+                    if (beforeVal !== null) {
+                        const diffDb = currentAvgDisplay - beforeVal;
+                        // Конверсия дБ в мощностное отношение: P2/P1 = 10^(ΔdB/10)
+                        const powerRatio = Math.pow(10, diffDb / 10);
+                        const percent = (powerRatio - 1) * 100;
+                        const sign = percent >= 0 ? '+' : '';
+                        diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
+                    }
                 }
 
                 // Обновление буфера спектров и расчёт медианного профиля
@@ -919,14 +788,10 @@
             // Определяем следующий шаг для кнопки
             if (measurementPhase === 'before') {
                 toggleBtn.textContent = 'Старт (после)';
-                toggleBtn.style.backgroundColor = '#01644f';
             } else {
-                toggleBtn.textContent = 'Заново';
-                toggleBtn.style.backgroundColor = '#01644f';
+                toggleBtn.textContent = 'Старт (новый цикл)';
             }
             toggleBtn.disabled = false;
-            toggleBtn.style.opacity = '1';
-            toggleBtn.style.pointerEvents = 'auto';
             toggleBtn.classList.remove('stop');
             deviceList.style.display = 'none';
 
@@ -974,9 +839,12 @@
             // Переключаем фазу и управляем подписями кнопок
             if (measurementPhase === 'before') {
                 measurementPhase = 'after';
+                toggleBtn.textContent = 'Старт (после)';
                 resetBtn.textContent = 'Стоп';
             } else {
                 measurementPhase = 'before';
+                // Второе завершение — предлагаем начать заново и сбросить
+                toggleBtn.textContent = 'Заново';
                 resetBtn.textContent = 'Сброс';
             }
         }
@@ -988,12 +856,12 @@
                 try { if (microphone) microphone.disconnect(); } catch(e) {}
                 try { if (audioContext) { audioContext.close(); audioContext = null; } } catch(e) {}
                 try { navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList); } catch(e) {}
+                isMeasuring = false;
             }
-            // Гарантируем сброс состояния измерения
-            isMeasuring = false;
             
             // Останавливаем белый шум
             stopWhiteNoise();
+            
             // Сброс всех данных
             beforeSmoothed = null;
             afterSmoothed = null;
@@ -1015,10 +883,6 @@
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
             toggleBtn.disabled = false; // гарантируем, что старт снова активен
-            toggleBtn.style.opacity = '1';
-            toggleBtn.style.pointerEvents = 'auto';
-            resetBtn.textContent = 'Стоп';
-            resetBtn.disabled = false;
             // Очистка графика
             try {
                 const rect = freqCanvas.getBoundingClientRect();
