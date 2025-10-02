@@ -611,6 +611,7 @@
         function startWhiteNoise() {
             if (isNoisePlaying) return;
             
+            // Всегда создаем новый источник
             createWhiteNoise();
             
             if (noiseContext.state === 'suspended') {
@@ -618,14 +619,19 @@
             }
             
             if (noiseSource && noiseGain) {
-                // Запускаем источник
-                noiseSource.start();
-                isNoisePlaying = true;
-                
-                // Плавное зажигание за 2 секунды
-                const currentTime = noiseContext.currentTime;
-                noiseGain.gain.setValueAtTime(0, currentTime); // начинаем с 0
-                noiseGain.gain.linearRampToValueAtTime(1.0, currentTime + 2.0); // доходим до максимума за 2 сек
+                try {
+                    // Запускаем источник
+                    noiseSource.start();
+                    isNoisePlaying = true;
+                    
+                    // Плавное зажигание за 2 секунды
+                    const currentTime = noiseContext.currentTime;
+                    noiseGain.gain.setValueAtTime(0, currentTime); // начинаем с 0
+                    noiseGain.gain.linearRampToValueAtTime(1.0, currentTime + 2.0); // доходим до максимума за 2 сек
+                } catch(e) {
+                    console.error('Ошибка запуска белого шума:', e);
+                    isNoisePlaying = false;
+                }
             }
         }
 
@@ -635,6 +641,7 @@
             if (noiseSource) {
                 try {
                     noiseSource.stop();
+                    noiseSource.disconnect(); // Отключаем старый источник
                     isNoisePlaying = false;
                 } catch(e) {
                     isNoisePlaying = false;
