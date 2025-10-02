@@ -50,23 +50,23 @@
             max-height: none;
             border-radius: 0;
             box-shadow: none;
-            padding: 20px 40px 80px 40px;
+            padding: 20px 40px 40px 40px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto 1fr auto auto;
+            grid-template-rows: 1fr auto auto;
             grid-template-areas:
-                'title title'
                 'graph graph'
                 'metricsL metricsR'
                 'diff diff';
-            gap: 20px 16px;
+            gap: 10px 16px;
             align-items: start;
             position: relative;
         }
         .fs #spectrumWrap { grid-area: graph; position: relative; }
         .fs #freqCanvas { height: 60vh; max-height: none; min-height: 400px; }
 
-        .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0 0 4px 0; letter-spacing: 0.6px; }
+        /* Заголовок скрыт в fullscreen */
+        .fs h1 { display: none; }
         /* Статус скрыт в fullscreen */
         .fs #status { display: none; }
 
@@ -75,54 +75,72 @@
         .fs #avgAfter { grid-area: metricsR; justify-self: end; align-self: center; }
         .fs #avgBefore, .fs #avgAfter {
             display: inline-block;
-            font-size: clamp(28px, 4vw, 60px);
-            font-weight: 700;
             margin: 0;
         }
-        .fs #avgBefore { text-align: left; }
-        .fs #avgAfter { text-align: right; }
-
-        /* Разница под метриками, по центру */
-        .fs #diff {
-            grid-area: diff;
-            text-align: center;
-            font-size: clamp(32px, 6vw, 80px);
+        .fs #avgBefore { 
+            text-align: left; 
+            font-size: clamp(20px, 3vw, 40px);
+            font-weight: 500;
+        }
+        .fs #avgAfter { 
+            text-align: right; 
+            font-size: clamp(18px, 2.8vw, 36px);
             font-weight: 700;
-            margin: 10px 0 0 0;
-            color: #333;
         }
 
-        /* Таймер между разницей и кнопками */
+        /* Разница смещена вправо, меньший размер */
+        .fs #diff {
+            grid-area: diff;
+            text-align: right;
+            font-size: clamp(16px, 2.5vw, 32px);
+            font-weight: 400;
+            margin: 5px 0 0 0;
+            color: #666;
+            justify-self: end;
+        }
+
+        /* Таймер под разницей, центрирован */
         .fs #duration {
-            position: fixed;
+            grid-area: diff;
+            position: absolute;
             left: 50%;
-            bottom: 80px;
+            top: 100%;
             transform: translateX(-50%);
-            font-size: clamp(18px, 3vw, 36px);
-            color: #333;
+            font-size: clamp(14px, 2vw, 24px);
+            color: #666;
             text-align: center;
+            margin-top: 8px;
             z-index: 9;
         }
 
-        /* Кнопки: компактные, по центру внизу */
+        /* Кнопки: вертикально по центру, светлые */
         .fs .row {
             position: fixed;
             left: 50%;
             bottom: 20px;
             transform: translateX(-50%);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 16px;
+            gap: 8px;
             z-index: 10;
             pointer-events: none;
         }
         .fs .row button { pointer-events: auto; }
         .fs button { 
-            font-size: clamp(14px, 2vw, 24px); 
-            padding: 12px 20px; 
-            border-radius: 8px;
-            min-width: 120px;
+            font-size: clamp(12px, 1.8vw, 20px); 
+            padding: 8px 16px; 
+            border-radius: 6px;
+            min-width: 100px;
+            background-color: #01644f;
+            color: #ffffff;
+            border: none;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .fs button:hover {
+            background-color: #014d3d;
         }
 
         /* Экран запуска вне fullscreen */
