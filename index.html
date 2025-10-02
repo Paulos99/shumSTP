@@ -61,7 +61,15 @@
             align-items: stretch;
             position: relative;
         }
-        .fs #spectrumWrap { grid-area: graph; position: relative; }
+        .fs #spectrumWrap { 
+            grid-area: graph; 
+            position: relative; 
+            padding: 0 !important; 
+            border: none !important; 
+            margin: 0 !important;
+            background: transparent !important;
+            border-radius: 0 !important;
+        }
         .fs #freqCanvas { height: 100%; max-height: none; min-height: none; }
 
         /* Заголовок скрыт в fullscreen */
@@ -390,8 +398,16 @@
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 z-index: 1000;
             }
-            #spectrumWrap { grid-area: graph; position: relative; }
-            #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; }
+            .fs #spectrumWrap { 
+                grid-area: graph; 
+                position: relative; 
+                padding: 0 !important; 
+                border: none !important; 
+                margin: 0 !important;
+                background: transparent !important;
+                border-radius: 0 !important;
+            }
+            .fs #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; width: 100% !important; }
             
             .bottom-area {
                 grid-area: bottom;
@@ -745,6 +761,8 @@
             const isFs = !!document.fullscreenElement;
             document.documentElement.classList.toggle('fs', isFs);
             setTimeout(initFreqCanvas, 100);
+            setTimeout(initFreqCanvas, 300);
+            setTimeout(initFreqCanvas, 500);
         });
         resetBtn.addEventListener('click', () => {
             const label = resetBtn.textContent.trim();
