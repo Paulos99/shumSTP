@@ -50,95 +50,80 @@
             max-height: none;
             border-radius: 0;
             box-shadow: none;
-            padding: 6px 32px 110px 32px; /* ещё чуть выше контент */
+            padding: 20px 40px 80px 40px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto auto auto 1fr auto;
+            grid-template-rows: auto 1fr auto auto;
             grid-template-areas:
                 'title title'
                 'graph graph'
                 'metricsL metricsR'
-                'status status'
                 'diff diff';
-            gap: 10px 16px;
+            gap: 20px 16px;
             align-items: start;
             position: relative;
         }
-        .fs #spectrumWrap { grid-area: graph; position: relative; padding-bottom: 32px; margin-top: -8px; }
-        .fs #freqCanvas { height: 46vh; max-height: none; min-height: 280px; }
+        .fs #spectrumWrap { grid-area: graph; position: relative; }
+        .fs #freqCanvas { height: 60vh; max-height: none; min-height: 400px; }
 
         .fs h1 { grid-area: title; font-size: clamp(72px, 9.5vw, 170px); font-weight: 900; margin: 0 0 4px 0; letter-spacing: 0.6px; }
-        /* Статус поверх графика, у верхней кромки канваса */
-        .fs #status {
-            grid-area: graph;
-            position: absolute;
-            top: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: clamp(12px, 1.4vw, 20px);
-            margin: 0;
-            color: #486267;
-            pointer-events: none;
-        }
+        /* Статус скрыт в fullscreen */
+        .fs #status { display: none; }
 
         /* Метрики ДО/ПОСЛЕ очень крупно, по сторонам */
         .fs #avgBefore { grid-area: metricsL; justify-self: start; align-self: center; }
         .fs #avgAfter { grid-area: metricsR; justify-self: end; align-self: center; }
         .fs #avgBefore, .fs #avgAfter {
             display: inline-block;
-            font-size: clamp(44px, 6.2vw, 120px);
-            font-weight: 900;
-            margin: -4px 0 0 0; /* чуть выше */
+            font-size: clamp(28px, 4vw, 60px);
+            font-weight: 700;
+            margin: 0;
         }
         .fs #avgBefore { text-align: left; }
         .fs #avgAfter { text-align: right; }
 
-        /* Разница по центру, между кнопками внизу */
+        /* Разница под метриками, по центру */
         .fs #diff {
+            grid-area: diff;
+            text-align: center;
+            font-size: clamp(32px, 6vw, 80px);
+            font-weight: 700;
+            margin: 10px 0 0 0;
+            color: #333;
+        }
+
+        /* Таймер между разницей и кнопками */
+        .fs #duration {
             position: fixed;
             left: 50%;
+            bottom: 80px;
             transform: translateX(-50%);
-            bottom: 12px; /* на одной линии с кнопками */
-            font-size: clamp(28px, 5vw, 72px); /* крупнее вдвое */
-            margin: 0;
-            z-index: 9;
-            white-space: nowrap; /* не переносить строки */
-            min-width: 60vw; /* расширить поле для больших значений */
+            font-size: clamp(18px, 3vw, 36px);
+            color: #333;
             text-align: center;
-            overflow-x: auto; /* горизонтальный скролл при необходимости */
-            padding: 0 20px;
+            z-index: 9;
         }
 
-        /* Секунды обратного отсчёта: между «До» и «После» */
-        .fs #duration {
-            grid-column: 1 / span 2; /* на всю ширину ряда */
-            grid-row: 3; /* ряд метрик */
-            justify-self: center;
-            align-self: end;
-            position: static;
-            font-size: clamp(14px, 1.8vw, 26px);
-            color: #233538;
-            margin-top: 6px;
-        }
-        .fs #duration { font-size: clamp(16px, 2vw, 28px); opacity: 0.9; }
-
-        /* Кнопки: компактные, закреплены внизу справа */
+        /* Кнопки: компактные, по центру внизу */
         .fs .row {
             position: fixed;
-            left: 24px;
-            right: 24px;
-            bottom: 12px; /* ниже, ближе к краю экрана */
+            left: 50%;
+            bottom: 20px;
+            transform: translateX(-50%);
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             z-index: 10;
-            pointer-events: none; /* контейнер не ловит клики, только кнопки */
+            pointer-events: none;
         }
         .fs .row button { pointer-events: auto; }
-        .fs #toggleBtn { align-self: flex-end; }
-        .fs #resetBtn { align-self: flex-end; }
-        .fs button { font-size: clamp(16px, 2.2vw, 28px); padding: 14px 24px; border-radius: 12px; }
+        .fs button { 
+            font-size: clamp(14px, 2vw, 24px); 
+            padding: 12px 20px; 
+            border-radius: 8px;
+            min-width: 120px;
+        }
 
         /* Экран запуска вне fullscreen */
         #launchOverlay {
@@ -562,7 +547,7 @@
                 sumRms2 = 0;
                 countFrames = 0;
                 avgElement.textContent = 'Среднее: -- dB';
-                durationElement.textContent = `${measurementLimitSec}`;
+                durationElement.textContent = `${measurementLimitSec} секунд`;
                 diffElement.textContent = 'Разница: -- dB';
                 startTimeMs = Date.now();
                 endTimeMs = startTimeMs + measurementLimitSec * 1000;
@@ -766,7 +751,7 @@
             avgBeforeEl.textContent = 'До: -- dB';
             avgAfterEl.textContent = 'После: -- dB';
             diffElement.textContent = 'Разница: -- dB';
-            durationElement.textContent = `${measurementLimitSec}`;
+            durationElement.textContent = `${measurementLimitSec} секунд`;
             statusElement.textContent = 'Готов к измерению. Нажмите «Старт»';
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
