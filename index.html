@@ -780,6 +780,10 @@
                     avgBeforeEl.textContent = 'До: -- dB';
                 } else {
                     avgAfterEl.textContent = 'После: -- dB';
+                    // При втором измерении показываем, что разница вычисляется
+                    if (avgBeforeVal !== null) {
+                        diffElement.textContent = 'Разница: вычисляется...';
+                    }
                 }
                 // Инициализируем канвас спектра под экран
                 initFreqCanvas();
@@ -836,20 +840,9 @@
                     }
                 }
 
-                // Обновляем разницу (ПОСЛЕ - ДО) при второй фазе
-                if (measurementPhase === 'after') {
-                    const beforeVal = (avgBeforeVal !== null && !isNaN(avgBeforeVal)) ? avgBeforeVal : null;
-                    const currentMeanRms2 = (sumRms2 + rms * rms) / Math.max(1, countFrames + 1);
-                    const currentAvgDbFs = currentMeanRms2 > 0 ? 10 * Math.log10(currentMeanRms2) : -100;
-                    const currentAvgDisplay = Math.min(120, Math.max(0, currentAvgDbFs + 100));
-                    if (beforeVal !== null) {
-                        const diffDb = currentAvgDisplay - beforeVal;
-                        // Конверсия дБ в мощностное отношение: P2/P1 = 10^(ΔdB/10)
-                        const powerRatio = Math.pow(10, diffDb / 10);
-                        const percent = (powerRatio - 1) * 100;
-                        const sign = percent >= 0 ? '+' : '';
-                        diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
-                    }
+                // Показываем статус разницы во время второго измерения
+                if (measurementPhase === 'after' && avgBeforeVal !== null) {
+                    diffElement.textContent = 'Разница: вычисляется...';
                 }
 
                 // Обновление буфера спектров и расчёт медианного профиля
@@ -955,8 +948,9 @@
                 try { if (microphone) microphone.disconnect(); } catch(e) {}
                 try { if (audioContext) { audioContext.close(); audioContext = null; } } catch(e) {}
                 try { navigator.mediaDevices.removeEventListener('devicechange', updateDeviceList); } catch(e) {}
-                isMeasuring = false;
             }
+            // Гарантируем сброс состояния измерения
+            isMeasuring = false;
             
             // Останавливаем белый шум
             stopWhiteNoise();
