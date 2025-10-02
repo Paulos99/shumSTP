@@ -679,6 +679,12 @@
         });
 
         toggleBtn.addEventListener('click', async () => {
+            // Визуальная индикация нажатия
+            toggleBtn.style.backgroundColor = '#ff6b6b';
+            setTimeout(() => {
+                toggleBtn.style.backgroundColor = '#01644f';
+            }, 200);
+            
             try {
                 if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
@@ -708,6 +714,8 @@
         });
         
         async function startMeter() {
+            // Визуальная индикация запуска
+            statusElement.style.color = '#ff6b6b';
             try {
                 statusElement.textContent = 'Запрашиваем доступ к микрофону...';
                 // Новый цикл начинается, когда фаза ДО и нажали старт заново — очищаем старые графики/значения
@@ -759,6 +767,7 @@
                 processAudio();
 
                 statusElement.textContent = measurementPhase === 'before' ? 'Измерение ДО...' : 'Измерение ПОСЛЕ...';
+                statusElement.style.color = measurementPhase === 'before' ? '#e53935' : '#01644f';
                 toggleBtn.disabled = true;
                 
                 // Запускаем белый шум на время измерения
@@ -883,10 +892,14 @@
             // Определяем следующий шаг для кнопки
             if (measurementPhase === 'before') {
                 toggleBtn.textContent = 'Старт (после)';
+                toggleBtn.style.backgroundColor = '#01644f';
             } else {
                 toggleBtn.textContent = 'Заново';
+                toggleBtn.style.backgroundColor = '#01644f';
             }
             toggleBtn.disabled = false;
+            toggleBtn.style.opacity = '1';
+            toggleBtn.style.pointerEvents = 'auto';
             toggleBtn.classList.remove('stop');
             deviceList.style.display = 'none';
 
@@ -975,6 +988,8 @@
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
             toggleBtn.disabled = false; // гарантируем, что старт снова активен
+            toggleBtn.style.opacity = '1';
+            toggleBtn.style.pointerEvents = 'auto';
             resetBtn.textContent = 'Стоп';
             resetBtn.disabled = false;
             // Очистка графика
