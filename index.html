@@ -8,27 +8,18 @@
         :root {
             --accent: #01644f;
             --accent-dark: #014d3d;
-            --accent-glow: rgba(1, 100, 79, 0.25);
-            --danger: #e53935;
-            --danger-glow: rgba(229, 57, 53, 0.25);
-            --text-main: #2c3e40;
-            --text-secondary: #6c757d;
+            --text-main: #1f2a2e;
             --surface: #ffffff;
-            --surface-card: #ffffff;
-            --glass: rgba(255, 255, 255, 0.95);
-            --border: rgba(1, 100, 79, 0.12);
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --shadow-strong: 0 8px 24px rgba(0, 0, 0, 0.12);
-            --radius: 12px;
-            --radius-small: 8px;
-            --gray-border: #d1d5db;
-            --gray-bg: #f3f4f6;
+            --surface-muted: #f7f9f9;
+            --shadow: 0 10px 30px rgba(1, 100, 79, 0.12);
+            --radius: 14px;
+            --danger: #e53935;
         }
         * {
             -webkit-tap-highlight-color: transparent;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -36,7 +27,7 @@
             min-height: 100dvh;
             height: 100dvh;
             margin: 0;
-            background: #ffffff;
+            background-color: var(--surface);
             color: var(--text-main);
             overflow: hidden;
         }
@@ -69,19 +60,17 @@
             gap: 8px;
             align-items: stretch;
             position: relative;
-            background: #ffffff;
         }
         .fs #spectrumWrap { 
             grid-area: graph; 
             position: relative; 
-            padding: 20px !important; 
-            border: 2px solid var(--gray-border) !important; 
+            padding: 0 !important; 
+            border: none !important; 
             margin: 0 !important;
-            background: #ffffff !important;
-            border-radius: 12px !important;
+            background: transparent !important;
+            border-radius: 0 !important;
             height: 100% !important;
             width: 100% !important;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
         }
         .fs #freqCanvas { height: 100% !important; width: 100% !important; max-height: none !important; min-height: none !important; }
 
@@ -91,20 +80,18 @@
         .fs #status {
             grid-area: graph;
             position: absolute;
-            top: 32px;
+            top: 8px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: clamp(11px, 1.3vw, 15px);
+            font-size: clamp(12px, 1.4vw, 18px);
             margin: 0;
-            color: var(--text-secondary);
+            color: rgba(72, 98, 103, 0.6);
             pointer-events: none;
             background: transparent;
             padding: 4px 8px;
             border-radius: 0;
-            border: none;
             box-shadow: none;
             z-index: 1000;
-            font-weight: 400;
         }
 
         /* Нижняя область - правильная структура */
@@ -137,7 +124,6 @@
             margin: 8px 0 0 0;
             color: var(--danger);
             line-height: 1.0;
-            text-shadow: none;
         }
         .fs #avgAfter { 
             text-align: left; 
@@ -146,17 +132,15 @@
             margin: 8px 0 0 0;
             color: var(--accent);
             line-height: 1.0;
-            text-shadow: none;
         }
         .fs #diff {
             text-align: left; 
             font-size: 45px;
             font-weight: 900;
             margin: 8px 0 0 0;
-            color: var(--text-main);
+            color: #585858;
             line-height: 1.0;
             white-space: nowrap;
-            text-shadow: none;
         }
         
         /* Правая колонка - управление */
@@ -173,18 +157,16 @@
         /* Секундомер - в центре, с анимацией */
         .fs #duration {
             font-size: 75px;
-            color: var(--text-main);
+            color: #233538;
             text-align: center;
             margin: auto 0;
             font-weight: 700;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
-            text-shadow: none;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
         
         .fs #duration.pulse {
             transform: scale(1.3);
             opacity: 1;
-            text-shadow: none;
         }
 
         /* Кнопки внизу */
@@ -198,28 +180,14 @@
         }
         .fs button { 
             font-size: 22px;
-            padding: 18px 32px; 
-            border-radius: 12px;
+            padding: 15px 25px; 
+            border-radius: 10px;
             width: 220px;
-            background: var(--accent);
+            background-color: #01644f;
             color: #ffffff;
-            border: 2px solid var(--accent);
-            font-weight: 700;
+            border: none;
+            font-weight: bold;
             text-transform: uppercase;
-            box-shadow: 0 2px 8px rgba(1, 100, 79, 0.2);
-            transition: all 0.2s ease;
-            letter-spacing: 0.5px;
-        }
-        
-        .fs button:hover {
-            background: var(--accent-dark);
-            border-color: var(--accent-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(1, 100, 79, 0.25);
-        }
-        
-        .fs button:active {
-            transform: translateY(0);
         }
 
         /* Экран запуска вне fullscreen */
@@ -237,15 +205,10 @@
             font-size: 28px;
             padding: 14px 28px;
             border: 2px solid var(--accent);
-            background: var(--accent);
-            color: #ffffff;
+            background: #ffffff;
+            color: var(--accent);
             border-radius: 12px;
             cursor: pointer;
-            font-weight: 600;
-        }
-        #launchOverlay button:hover {
-            background: var(--accent-dark);
-            border-color: var(--accent-dark);
         }
         html:not(.fs) #launchOverlay { display: flex; }
         html:not(.fs) #app { display: none; }
@@ -408,8 +371,8 @@
         /* НОВЫЕ СТИЛИ ДЛЯ ПЛАНШЕТА С РАЗРЕШЕНИЕМ 2560x1600 */
         @media (min-width: 2000px) and (min-height: 1200px) and (orientation: landscape) {
             html, body { height: 100dvh; }
-            body { min-height: 100dvh; height: 100dvh; overflow: hidden; background: #ffffff; }
-            .fs #app {
+            body { min-height: 100dvh; height: 100dvh; overflow: hidden; }
+            #app {
                 width: 100vw;
                 height: 100dvh;
                 max-width: none;
@@ -426,40 +389,37 @@
                 gap: 8px;
                 align-items: stretch;
                 position: relative;
-                background: #ffffff;
             }
             h1 { display: none; }
-            .fs #status {
+            #status {
                 grid-area: graph;
                 position: absolute;
-                top: 32px;
+                top: 8px;
                 left: 50%;
                 transform: translateX(-50%);
                 text-align: center;
-                font-size: clamp(11px, 1.3vw, 15px);
+                font-size: clamp(12px, 1.4vw, 18px);
                 background: transparent;
-                color: var(--text-secondary);
+                color: rgba(72, 98, 103, 0.6);
                 padding: 4px 8px;
                 border-radius: 0;
                 box-shadow: none;
                 z-index: 1000;
-                font-weight: 400;
             }
             .fs #spectrumWrap { 
                 grid-area: graph; 
                 position: relative; 
-                padding: 20px !important; 
-                border: 2px solid var(--gray-border) !important; 
+                padding: 0 !important; 
+                border: none !important; 
                 margin: 0 !important;
-                background: #ffffff !important;
-                border-radius: 12px !important;
+                background: transparent !important;
+                border-radius: 0 !important;
                 height: 100% !important;
                 width: 100% !important;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
             }
             .fs #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; width: 100% !important; }
             
-            .fs .bottom-area {
+            .bottom-area {
                 grid-area: bottom;
                 display: grid;
                 grid-template-columns: 56% 44%;
@@ -469,7 +429,7 @@
                 padding: 0 20px 10px 20px;
             }
             
-            .fs .measurements-column {
+            .measurements-column {
                 grid-column: 1;
                 display: flex;
                 flex-direction: column;
@@ -479,36 +439,33 @@
                 padding-bottom: 0;
             }
             
-            .fs #avgBefore { 
+            #avgBefore { 
                 text-align: left; 
                 font-size: 75px;
                 font-weight: 900;
                 margin: 8px 0 0 0;
                 color: var(--danger);
                 line-height: 1.0;
-                text-shadow: none;
             }
-            .fs #avgAfter { 
+            #avgAfter { 
                 text-align: left; 
                 font-size: 75px;
                 font-weight: 900;
                 margin: 8px 0 0 0;
                 color: var(--accent);
                 line-height: 1.0;
-                text-shadow: none;
             }
-            .fs #diff {
+            #diff {
                 text-align: left; 
                 font-size: 45px;
                 font-weight: 900;
                 margin: 8px 0 0 0;
-                color: var(--text-main);
+                color: #585858;
                 line-height: 1.0;
                 white-space: nowrap;
-                text-shadow: none;
             }
             
-            .fs .controls-panel {
+            .controls-panel {
                 grid-column: 2;
                 display: flex;
                 flex-direction: column;
@@ -518,23 +475,21 @@
                 height: 100%;
             }
             
-            .fs #duration {
+            #duration {
                 font-size: 75px;
-                color: var(--text-main);
+                color: #233538;
                 text-align: center;
                 margin: auto 0;
                 font-weight: 700;
-                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
-                text-shadow: none;
+                transition: transform 0.3s ease, opacity 0.3s ease;
             }
             
-            .fs #duration.pulse {
+            #duration.pulse {
                 transform: scale(1.3);
                 opacity: 1;
-                text-shadow: none;
             }
             
-            .fs .row {
+            .row {
                 display: flex;
                 flex-direction: row;
                 justify-content: center;
@@ -543,30 +498,16 @@
                 margin: 0;
             }
             
-            .fs button { 
+            button { 
                 font-size: 22px;
-                padding: 18px 32px; 
-                border-radius: 12px;
+                padding: 15px 25px; 
+                border-radius: 10px;
                 width: 220px;
-                background: var(--accent);
+                background-color: #01644f;
                 color: #ffffff;
-                border: 2px solid var(--accent);
-                font-weight: 700;
+                border: none;
+                font-weight: bold;
                 text-transform: uppercase;
-                box-shadow: 0 2px 8px rgba(1, 100, 79, 0.2);
-                transition: all 0.2s ease;
-                letter-spacing: 0.5px;
-            }
-            
-            .fs button:hover {
-                background: var(--accent-dark);
-                border-color: var(--accent-dark);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(1, 100, 79, 0.25);
-            }
-            
-            .fs button:active {
-                transform: translateY(0);
             }
         }
 
