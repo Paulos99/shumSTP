@@ -83,14 +83,14 @@
             top: 8px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: clamp(14px, 1.6vw, 22px);
+            font-size: clamp(12px, 1.4vw, 18px);
             margin: 0;
-            color: #486267;
+            color: rgba(72, 98, 103, 0.6);
             pointer-events: none;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 16px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: transparent;
+            padding: 4px 8px;
+            border-radius: 0;
+            box-shadow: none;
             z-index: 1000;
         }
 
@@ -395,14 +395,15 @@
                 grid-area: graph;
                 position: absolute;
                 top: 8px;
-                left: 8px;
-                right: 8px;
+                left: 50%;
+                transform: translateX(-50%);
                 text-align: center;
-                font-size: clamp(18px, 2.2vw, 32px);
-                background-color: rgba(255, 255, 255, 0.95);
-                padding: 8px 16px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                font-size: clamp(12px, 1.4vw, 18px);
+                background: transparent;
+                color: rgba(72, 98, 103, 0.6);
+                padding: 4px 8px;
+                border-radius: 0;
+                box-shadow: none;
                 z-index: 1000;
             }
             .fs #spectrumWrap { 
@@ -564,7 +565,7 @@
     <div id="launchOverlay"><button id="launchBtn">ЗАПУСТИТЬ</button></div>
     <div id="app">
         <h1>Измерение шума</h1>
-        <div id="status">Нажмите "Старт" для доступа к микрофону</div>
+        <div id="status">Готов к работе</div>
         <div id="spectrumWrap">
             <canvas id="freqCanvas"></canvas>
         </div>
@@ -643,7 +644,7 @@
 
         // Проверка поддержки getUserMedia
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            statusElement.textContent = 'Ваш браузер не поддерживает доступ к микрофону.';
+            statusElement.textContent = 'Микрофон недоступен';
             toggleBtn.disabled = true;
         }
 
@@ -819,7 +820,7 @@
         
         async function startMeter() {
             try {
-                statusElement.textContent = 'Запрашиваем доступ к микрофону...';
+                statusElement.textContent = 'Подключение...';
                 // Новый цикл начинается, когда фаза ДО и нажали старт заново — очищаем старые графики/значения
                 if (measurementPhase === 'before') {
                     beforeSmoothed = null;
@@ -868,7 +869,7 @@
                 // Используем AnalyserNode для получения данных
                 processAudio();
 
-                statusElement.textContent = measurementPhase === 'before' ? 'Измерение ДО...' : 'Измерение ПОСЛЕ...';
+                statusElement.textContent = measurementPhase === 'before' ? 'Измерение фона...' : 'Измерение с защитой...';
                 toggleBtn.disabled = true;
                 
                 // Запускаем белый шум на время измерения
@@ -904,7 +905,7 @@
                 // Больше не обновляем список устройств — фиксируемся на устройстве по умолчанию
             } catch (err) {
                 console.error('Ошибка:', err);
-                statusElement.textContent = `Ошибка: ${err.message || 'Не удалось получить доступ к микрофону.'}`;
+                statusElement.textContent = 'Ошибка доступа к микрофону';
             }
         }
 
@@ -1009,7 +1010,7 @@
             // Останавливаем белый шум
             stopWhiteNoise();
             
-            statusElement.textContent = 'Измерение остановлено.';
+            statusElement.textContent = 'Остановлено';
             // Определяем следующий шаг для кнопки
             if (measurementPhase === 'before') {
                 toggleBtn.textContent = 'Старт (после)';
@@ -1104,7 +1105,7 @@
             avgAfterEl.textContent = 'После: -- dB';
             diffElement.textContent = 'Разница: -- dB';
             durationElement.textContent = `${measurementLimitSec} секунд`;
-            statusElement.textContent = 'Готов к измерению. Нажмите «Старт»';
+            statusElement.textContent = 'Готов к работе';
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
             toggleBtn.disabled = false; // гарантируем, что старт снова активен
