@@ -869,7 +869,7 @@
                 // Используем AnalyserNode для получения данных
                 processAudio();
 
-                statusElement.textContent = measurementPhase === 'before' ? 'Измерение фона...' : 'Измерение с защитой...';
+                statusElement.textContent = measurementPhase === 'before' ? 'Измерение ДО...' : 'Измерение с MultiFRAME...';
                 toggleBtn.disabled = true;
                 
                 // Запускаем белый шум на время измерения
@@ -1296,20 +1296,26 @@
                 freqCtx.stroke();
             });
 
-            // Живая линия во время измерения (с тем же сглаживанием что и итоговая)
-            // Рисуем только если идёт активное измерение
+            // Живая линия во время измерения - УЛУЧШЕННАЯ визуализация
+            // Используем то же сглаживание что и для финального результата
             if (isMeasuring && analyser && freqArray && freqArray.length === bins) {
-                // Применяем медиану по текущему буферу для согласованности
+                // ВАЖНО: используем currentSmoothed - он уже содержит медианное сглаживание
                 const liveData = currentSmoothed || freqArray;
-                const liveColor = (measurementPhase === 'after') ? '#01644f' : '#e53935';
-                const liveColorAlpha = (measurementPhase === 'after') ? 'rgba(1,100,79,0.3)' : 'rgba(229,57,53,0.3)';
+                const isAfter = measurementPhase === 'after';
                 
-                // Создаём градиент для заливки
-                const gradient = freqCtx.createLinearGradient(0, 0, 0, height);
-                gradient.addColorStop(0, (measurementPhase === 'after') ? 'rgba(1,100,79,0.4)' : 'rgba(229,57,53,0.4)');
-                gradient.addColorStop(1, 'rgba(255,255,255,0)');
+                // Более яркие и насыщенные градиенты
+                const gradientLive = freqCtx.createLinearGradient(0, 0, 0, height);
+                if (isAfter) {
+                    gradientLive.addColorStop(0, 'rgba(1,100,79,0.65)');      // Ярче!
+                    gradientLive.addColorStop(0.5, 'rgba(1,100,79,0.35)');
+                    gradientLive.addColorStop(1, 'rgba(1,100,79,0.02)');
+                } else {
+                    gradientLive.addColorStop(0, 'rgba(229,57,53,0.65)');     // Ярче!
+                    gradientLive.addColorStop(0.5, 'rgba(229,57,53,0.35)');
+                    gradientLive.addColorStop(1, 'rgba(229,57,53,0.02)');
+                }
                 
-                // Рисуем путь для заливки
+                // Рисуем заливку
                 freqCtx.beginPath();
                 freqCtx.moveTo(0, height - 20);
                 for (let c = 0; c < width; c++) {
@@ -1321,7 +1327,6 @@
                     v = Math.pow(v, 0.85);
                     const hfGain = 0.85 + 0.3 * t;
                     let vDraw = Math.min(1, v * hfGain);
-                    // Ограничение на 90 дБ (0.9 от максимума)
                     vDraw = Math.min(0.9, vDraw);
                     const h = vDraw * (height - 30);
                     const y = height - h - 20;
@@ -1329,13 +1334,13 @@
                 }
                 freqCtx.lineTo(width, height - 20);
                 freqCtx.closePath();
-                freqCtx.fillStyle = gradient;
+                freqCtx.fillStyle = gradientLive;
                 freqCtx.fill();
                 
-                // Рисуем линию поверх
-                freqCtx.lineWidth = 2.5;
-                freqCtx.strokeStyle = liveColor;
-                freqCtx.globalAlpha = 0.7;
+                // Рисуем линию поверх - более толстая и яркая
+                freqCtx.lineWidth = 3.0;  // Было 2.5
+                freqCtx.strokeStyle = isAfter ? '#01644f' : '#e53935';
+                freqCtx.globalAlpha = 0.9;  // Было 0.7 - теперь ярче!
                 freqCtx.beginPath();
                 for (let c = 0; c < width; c++) {
                     const t = c / (width - 1);
@@ -1346,7 +1351,6 @@
                     v = Math.pow(v, 0.85);
                     const hfGain = 0.85 + 0.3 * t;
                     let vDraw = Math.min(1, v * hfGain);
-                    // Ограничение на 90 дБ (0.9 от максимума)
                     vDraw = Math.min(0.9, vDraw);
                     const h = vDraw * (height - 30);
                     const y = height - h - 20;
@@ -1356,11 +1360,13 @@
                 freqCtx.globalAlpha = 1.0;
             }
 
-            // Линия АЧХ ДО (красная горка с градиентом) если есть
+            // Линия АЧХ ДО (красная горка с УЛУЧШЕННЫМ градиентом)
             if (beforeSmoothed && beforeSmoothed.length === bins) {
                 const gradientBefore = freqCtx.createLinearGradient(0, 0, 0, height);
-                gradientBefore.addColorStop(0, 'rgba(229,57,53,0.5)');
-                gradientBefore.addColorStop(1, 'rgba(229,57,53,0.05)');
+                gradientBefore.addColorStop(0, 'rgba(229,57,53,0.7)');        // Ярче!
+                gradientBefore.addColorStop(0.4, 'rgba(229,57,53,0.4)');
+                gradientBefore.addColorStop(0.7, 'rgba(229,57,53,0.15)');
+                gradientBefore.addColorStop(1, 'rgba(229,57,53,0.02)');
                 
                 // Рисуем заливку
                 freqCtx.beginPath();
@@ -1385,9 +1391,10 @@
                 freqCtx.fillStyle = gradientBefore;
                 freqCtx.fill();
                 
-                // Линия поверх
-                freqCtx.lineWidth = 2.5;
+                // Линия поверх - более толстая и яркая
+                freqCtx.lineWidth = 3.0;  // Было 2.5
                 freqCtx.strokeStyle = '#e53935';
+                freqCtx.globalAlpha = 1.0;  // Полная яркость
                 freqCtx.beginPath();
                 for (let c = 0; c < width; c++) {
                     const t = c / (width - 1);
@@ -1406,11 +1413,13 @@
                 }
                 freqCtx.stroke();
             }
-            // Линия АЧХ ПОСЛЕ (зелёная горка с градиентом) если есть — рисуем ПОСЛЕ красного, чтобы быть поверх
+            // Линия АЧХ ПОСЛЕ (зелёная горка с УЛУЧШЕННЫМ градиентом)
             if (afterSmoothed && afterSmoothed.length === bins) {
                 const gradientAfter = freqCtx.createLinearGradient(0, 0, 0, height);
-                gradientAfter.addColorStop(0, 'rgba(1,100,79,0.5)');
-                gradientAfter.addColorStop(1, 'rgba(1,100,79,0.05)');
+                gradientAfter.addColorStop(0, 'rgba(1,100,79,0.7)');          // Ярче!
+                gradientAfter.addColorStop(0.4, 'rgba(1,100,79,0.4)');
+                gradientAfter.addColorStop(0.7, 'rgba(1,100,79,0.15)');
+                gradientAfter.addColorStop(1, 'rgba(1,100,79,0.02)');
                 
                 // Рисуем заливку
                 freqCtx.beginPath();
@@ -1435,9 +1444,10 @@
                 freqCtx.fillStyle = gradientAfter;
                 freqCtx.fill();
                 
-                // Линия поверх
-                freqCtx.lineWidth = 2.5;
+                // Линия поверх - более толстая и яркая
+                freqCtx.lineWidth = 3.0;  // Было 2.5
                 freqCtx.strokeStyle = '#01644f';
+                freqCtx.globalAlpha = 1.0;  // Полная яркость
                 freqCtx.beginPath();
                 for (let c = 0; c < width; c++) {
                     const t = c / (width - 1);
