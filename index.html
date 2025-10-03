@@ -721,11 +721,9 @@
 
         function startWhiteNoise() {
             console.log('startWhiteNoise вызван, isNoisePlaying:', isNoisePlaying);
-            statusElement.textContent = statusElement.textContent + ' [Шум: старт]';
             
             if (isNoisePlaying) {
                 console.log('Шум уже играет, выход');
-                statusElement.textContent = statusElement.textContent + ' [УЖЕ ИГРАЕТ!]';
                 return;
             }
             
@@ -742,7 +740,6 @@
                     noiseSource.start();
                     isNoisePlaying = true;
                     console.log('Белый шум ЗАПУЩЕН');
-                    statusElement.textContent = statusElement.textContent.replace(' [Шум: старт]', ' [Шум: ✓]');
                     
                     // Плавное зажигание за 2 секунды
                     const currentTime = noiseContext.currentTime;
@@ -750,12 +747,10 @@
                     noiseGain.gain.linearRampToValueAtTime(1.0, currentTime + 2.0); // доходим до максимума за 2 сек
                 } catch(e) {
                     console.error('Ошибка запуска белого шума:', e);
-                    statusElement.textContent = statusElement.textContent + ' [ОШИБКА: ' + e.message + ']';
                     isNoisePlaying = false;
                 }
             } else {
                 console.error('noiseSource или noiseGain не создан!');
-                statusElement.textContent = statusElement.textContent + ' [НЕТ ИСТОЧНИКА!]';
             }
         }
 
