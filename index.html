@@ -638,9 +638,10 @@
 
         // Функции для работы с улучшенным белым шумом
         function createWhiteNoise() {
-            if (noiseContext) return;
-            
-            noiseContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Создаем AudioContext только один раз
+            if (!noiseContext) {
+                noiseContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
             
             // Создаем источник белого шума
             const bufferSize = 2 * noiseContext.sampleRate; // 2 секунды буфера
@@ -666,7 +667,7 @@
                 output[i] = Math.max(-1, Math.min(1, sample));
             }
             
-            // Создаем источник и gain node
+            // Создаем источник и gain node КАЖДЫЙ РАЗ
             noiseSource = noiseContext.createBufferSource();
             noiseSource.buffer = noiseBuffer;
             noiseSource.loop = true; // зацикливаем шум
