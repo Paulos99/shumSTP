@@ -224,6 +224,12 @@
             font-size: 18px;
             color: #486267;
         }
+        #avg {
+            font-size: clamp(28px, 6vw, 48px);
+            font-weight: 700;
+            color: var(--accent);
+            margin: 10px 0 4px 0;
+        }
         #avgBefore, #avgAfter {
             font-size: clamp(22px, 5.5vw, 40px);
             font-weight: 800;
@@ -266,6 +272,12 @@
             min-height: none !important;
         }
         
+        #avg.highlight {
+            font-size: 48px;
+            font-weight: bold;
+            margin-top: 10px;
+            color: var(--accent);
+        }
         button {
             padding: 18px 36px;
             font-size: clamp(12px, 3.6vw, 29px);
@@ -295,6 +307,46 @@
             border: 1px solid rgba(1, 100, 79, 0.28);
         }
         #toggleBtn.stop:hover { background: #f2fbf8; }
+        #clearHistoryBtn { background-color: #2c3e40; }
+        #clearHistoryBtn:hover { background-color: #1f2a2e; }
+        #deviceList {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid rgba(1, 100, 79, 0.25);
+            outline: none;
+            background: var(--surface-muted);
+            color: var(--text-main);
+        }
+        #history {
+            margin-top: 16px;
+            text-align: left;
+        }
+        #history h3 {
+            margin: 8px 0;
+            font-size: 18px;
+            color: var(--accent);
+        }
+        #historyList {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            border: 1px solid rgba(1, 100, 79, 0.12);
+            border-radius: 6px;
+            background: var(--surface);
+        }
+        #historyList li {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(1, 100, 79, 0.08);
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        #historyList li:last-child { border-bottom: none; }
         .row {
             display: flex;
             flex-wrap: wrap;
@@ -302,6 +354,7 @@
             justify-content: center;
         }
         @media (max-width: 600px) {
+            #avg.highlight { font-size: clamp(24px, 6.5vw, 34px); }
             #app { padding: 18px 14px; }
             .row { flex-wrap: nowrap; gap: 8px; }
             button { flex: 1 1 0; }
@@ -315,21 +368,27 @@
         }
 
 
-        /* СТИЛИ ДЛЯ ПЛАНШЕТА С РАЗРЕШЕНИЕМ 2560x1600 - дублируют fullscreen */
+        /* НОВЫЕ СТИЛИ ДЛЯ ПЛАНШЕТА С РАЗРЕШЕНИЕМ 2560x1600 */
         @media (min-width: 2000px) and (min-height: 1200px) and (orientation: landscape) {
-            html, body { height: 100dvh; overflow: hidden; }
+            html, body { height: 100dvh; }
+            body { min-height: 100dvh; height: 100dvh; overflow: hidden; }
             #app {
                 width: 100vw;
                 height: 100dvh;
                 max-width: none;
+                max-height: none;
                 border-radius: 0;
                 box-shadow: none;
                 padding: 15px 15px 10px 15px;
                 display: grid;
                 grid-template-columns: 1fr;
                 grid-template-rows: 4.5fr 1fr;
-                grid-template-areas: 'graph' 'bottom';
+                grid-template-areas:
+                    'graph'
+                    'bottom';
                 gap: 8px;
+                align-items: stretch;
+                position: relative;
             }
             h1 { display: none; }
             #status {
@@ -338,48 +397,140 @@
                 top: 8px;
                 left: 50%;
                 transform: translateX(-50%);
+                text-align: center;
                 font-size: clamp(12px, 1.4vw, 18px);
+                background: transparent;
                 color: rgba(72, 98, 103, 0.6);
+                padding: 4px 8px;
+                border-radius: 0;
+                box-shadow: none;
                 z-index: 1000;
             }
-            #spectrumWrap { 
+            .fs #spectrumWrap { 
                 grid-area: graph; 
+                position: relative; 
                 padding: 0 !important; 
                 border: none !important; 
                 margin: 0 !important;
                 background: transparent !important;
+                border-radius: 0 !important;
                 height: 100% !important;
                 width: 100% !important;
             }
-            #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; width: 100% !important; }
+            .fs #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; width: 100% !important; }
+            
             .bottom-area {
                 grid-area: bottom;
+                display: grid;
                 grid-template-columns: 56% 44%;
+                grid-template-rows: 1fr;
                 gap: 40px;
+                align-items: flex-end;
                 padding: 0 20px 10px 20px;
             }
-            .measurements-column { align-items: flex-start; }
-            #avgBefore, #avgAfter { 
+            
+            .measurements-column {
+                grid-column: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                align-items: flex-start;
+                gap: 2px;
+                padding-bottom: 0;
+            }
+            
+            #avgBefore { 
                 text-align: left; 
                 font-size: 75px;
                 font-weight: 900;
+                margin: 8px 0 0 0;
+                color: var(--danger);
+                line-height: 1.0;
+            }
+            #avgAfter { 
+                text-align: left; 
+                font-size: 75px;
+                font-weight: 900;
+                margin: 8px 0 0 0;
+                color: var(--accent);
                 line-height: 1.0;
             }
             #diff {
                 text-align: left; 
                 font-size: 45px;
                 font-weight: 900;
+                margin: 8px 0 0 0;
+                color: #585858;
                 line-height: 1.0;
+                white-space: nowrap;
             }
-            .controls-panel { height: 100%; }
-            #duration { font-size: 75px; margin: auto 0; }
+            
+            .controls-panel {
+                grid-column: 2;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0;
+                height: 100%;
+            }
+            
+            #duration {
+                font-size: 75px;
+                color: #233538;
+                text-align: center;
+                margin: auto 0;
+                font-weight: 700;
+                transition: transform 0.3s ease, opacity 0.3s ease;
+            }
+            
+            #duration.pulse {
+                transform: scale(1.3);
+                opacity: 1;
+            }
+            
+            .row {
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                gap: 15px;
+                margin: 0;
+            }
+            
             button { 
                 font-size: 22px;
                 padding: 15px 25px; 
+                border-radius: 10px;
                 width: 220px;
+                background-color: #01644f;
+                color: #ffffff;
+                border: none;
+                font-weight: bold;
+                text-transform: uppercase;
             }
         }
 
+        .note {
+            font-size: 14px;
+            color: #667d81;
+            margin-top: 20px;
+        }
+        
+        /* Анимация пульсации для кнопки Старт */
+        @keyframes pulse-button {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        #toggleBtn.pulse-attention {
+            animation: pulse-button 1.5s ease-in-out infinite;
+        }
+        
         /* Обычные стили для не-fullscreen режима */
         .bottom-area {
             display: grid;
@@ -437,6 +588,7 @@
                 <div id="avgBefore">До: -- dB</div>
                 <div id="avgAfter">После: -- dB</div>
                 <div id="diff">Разница: -- dB</div>
+                <div id="avg" style="display:none">Среднее: -- dB</div>
             </div>
             <div class="controls-panel">
                 <div id="duration">10 секунд</div>
@@ -446,31 +598,43 @@
                 </div>
             </div>
         </div>
+        <select id="deviceList" style="display:none;"></select>
+        <div id="history">
+            
+        </div>
     </div>
 
     <script>
+        // JavaScript код остается без изменений
         let audioContext = null;
         let analyser = null;
         let microphone = null;
+        let javascriptNode = null;
         let rafId = null;
         let isMeasuring = false;
         let startTimeMs = 0;
         // Энергетическое усреднение для dB
         let sumRms2 = 0;
         let countFrames = 0;
+        let deviceLabel = '';
         
         const diffElement = document.getElementById('diff');
         const statusElement = document.getElementById('status');
         const toggleBtn = document.getElementById('toggleBtn');
         const resetBtn = document.getElementById('resetBtn');
         const launchBtn = document.getElementById('launchBtn');
+        const deviceList = document.getElementById('deviceList');
+        const avgElement = document.getElementById('avg');
         const avgBeforeEl = document.getElementById('avgBefore');
         const avgAfterEl = document.getElementById('avgAfter');
         const durationElement = document.getElementById('duration');
+        const historyListEl = null;
+        const clearHistoryBtn = null;
         const freqCanvas = document.getElementById('freqCanvas');
         
         const freqCtx = freqCanvas.getContext ? freqCanvas.getContext('2d') : null;
         let freqGradient = null;
+        let hoverX = null;
         let sampleRate = 48000;
         let currentFftSize = 2048;
         // Два этапа измерения: до/после
@@ -556,7 +720,14 @@
         }
 
         function startWhiteNoise() {
-            if (isNoisePlaying) return;
+            console.log('startWhiteNoise вызван, isNoisePlaying:', isNoisePlaying);
+            statusElement.textContent = statusElement.textContent + ' [Шум: старт]';
+            
+            if (isNoisePlaying) {
+                console.log('Шум уже играет, выход');
+                statusElement.textContent = statusElement.textContent + ' [УЖЕ ИГРАЕТ!]';
+                return;
+            }
             
             // Всегда создаем новый источник
             createWhiteNoise();
@@ -570,36 +741,52 @@
                     // Запускаем источник
                     noiseSource.start();
                     isNoisePlaying = true;
+                    console.log('Белый шум ЗАПУЩЕН');
+                    statusElement.textContent = statusElement.textContent.replace(' [Шум: старт]', ' [Шум: ✓]');
                     
                     // Плавное зажигание за 2 секунды
                     const currentTime = noiseContext.currentTime;
-                    noiseGain.gain.setValueAtTime(0, currentTime);
-                    noiseGain.gain.linearRampToValueAtTime(1.0, currentTime + 2.0);
+                    noiseGain.gain.setValueAtTime(0, currentTime); // начинаем с 0
+                    noiseGain.gain.linearRampToValueAtTime(1.0, currentTime + 2.0); // доходим до максимума за 2 сек
                 } catch(e) {
+                    console.error('Ошибка запуска белого шума:', e);
+                    statusElement.textContent = statusElement.textContent + ' [ОШИБКА: ' + e.message + ']';
                     isNoisePlaying = false;
                 }
+            } else {
+                console.error('noiseSource или noiseGain не создан!');
+                statusElement.textContent = statusElement.textContent + ' [НЕТ ИСТОЧНИКА!]';
             }
         }
 
         function stopWhiteNoise() {
-            if (!isNoisePlaying) return;
+            console.log('stopWhiteNoise вызван, isNoisePlaying:', isNoisePlaying);
+            
+            if (!isNoisePlaying) {
+                console.log('Шум не играет, выход');
+                return;
+            }
             
             if (noiseSource) {
                 try {
                     noiseSource.stop();
-                    noiseSource.disconnect();
+                    noiseSource.disconnect(); // Отключаем старый источник
                     isNoisePlaying = false;
+                    console.log('Белый шум ОСТАНОВЛЕН');
                 } catch(e) {
+                    console.error('Ошибка остановки белого шума:', e);
                     isNoisePlaying = false;
                 }
             }
             
+            // Отключаем gain для гарантии
             if (noiseGain) {
                 try {
                     noiseGain.disconnect();
                 } catch(e) {}
             }
             
+            // НЕ создаем новый источник здесь - создадим при запуске
             noiseSource = null;
             noiseGain = null;
         }
@@ -647,6 +834,9 @@
         
         async function startMeter() {
             try {
+                // Убираем анимацию пульсации при нажатии Старт
+                toggleBtn.classList.remove('pulse-attention');
+                
                 statusElement.textContent = 'Подключение...';
                 // Новый цикл начинается, когда фаза ДО и нажали старт заново — очищаем старые графики/значения
                 if (measurementPhase === 'before') {
@@ -664,7 +854,10 @@
                     } catch(e) {}
                 }
 
-                // Используем микрофон по умолчанию
+                // Используем микрофон по умолчанию — без выбора устройства
+                deviceList.style.display = 'none';
+                const selectedDeviceId = undefined;
+                deviceLabel = '';
 
                 // Запрашиваем доступ к микрофону
                 const stream = await navigator.mediaDevices.getUserMedia({
@@ -703,12 +896,15 @@
                 // Сброс накопителей для нового замера
                 sumRms2 = 0;
                 countFrames = 0;
+                avgElement.textContent = 'Среднее: -- dB';
                 durationElement.textContent = `${measurementLimitSec}`;
                 durationElement.setAttribute('data-prev', measurementLimitSec);
                 diffElement.textContent = 'Разница: -- dB';
                 startTimeMs = Date.now();
                 endTimeMs = startTimeMs + measurementLimitSec * 1000;
                 isMeasuring = true;
+                // Убираем выделение среднего при новом замере
+                avgElement.classList.remove('highlight');
                 // Инициализируем целевую строку средней в зависимости от фазы
                 if (measurementPhase === 'before') {
                     avgBeforeEl.textContent = 'До: -- dB';
@@ -720,6 +916,10 @@
                 // Сброс буфера спектров
                 spectrumBuffer = [];
                 currentSmoothed = null;
+                // Если начинаем ПОСЛЕ, не трогаем avgBefore и beforePeaks
+
+                // Обновляем список устройств при изменении
+                // Больше не обновляем список устройств — фиксируемся на устройстве по умолчанию
             } catch (err) {
                 console.error('Ошибка:', err);
                 statusElement.textContent = 'Ошибка доступа к микрофону';
@@ -836,6 +1036,7 @@
             }
             toggleBtn.disabled = false;
             toggleBtn.classList.remove('stop');
+            deviceList.style.display = 'none';
 
             // Сбрасываем флаг измерения ДО обработки итогов, чтобы живая линия не рисовалась
             const wasMeasuring = isMeasuring;
@@ -887,7 +1088,7 @@
                 measurementPhase = 'before';
                 // Второе завершение — предлагаем начать заново и сбросить
                 toggleBtn.textContent = 'Заново';
-                resetBtn.textContent = 'Сброс';
+                resetBtn.textContent = 'Завершить';
             }
         }
 
@@ -924,8 +1125,9 @@
             statusElement.textContent = 'Готов к работе';
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
-            toggleBtn.disabled = false;
-            resetBtn.textContent = 'Стоп';
+            toggleBtn.disabled = false; // гарантируем, что старт снова активен
+            // Включаем анимацию пульсации для привлечения внимания
+            toggleBtn.classList.add('pulse-attention');
             // Очистка графика
             try {
                 const rect = freqCanvas.getBoundingClientRect();
@@ -935,15 +1137,72 @@
             } catch(e) {}
         }
 
+        async function updateDeviceList() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputDevices = devices.filter(device => device.kind === 'audioinput');
+
+                deviceList.innerHTML = '';
+                audioInputDevices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Микрофон ${device.deviceId.substring(0, 5)}`;
+                    deviceList.appendChild(option);
+                });
+            } catch (err) {
+                console.error('Ошибка обновления списка устройств:', err);
+            }
+        }
+
+        // Обработка выбора устройства
+        deviceList.addEventListener('change', async () => {
+            // Перезапускаем с выбранным устройством
+            stopMeter();
+            setTimeout(startMeter, 100);
+        });
+
+        function renderHistory() {
+            historyListEl.innerHTML = '';
+            if (!history.length) return;
+            history.forEach(item => {
+                const li = document.createElement('li');
+                const left = document.createElement('span');
+                const right = document.createElement('span');
+                const dt = new Date(item.ts);
+                const mm = String(Math.floor(item.duration / 60)).padStart(2, '0');
+                const ss = String(item.duration % 60).padStart(2, '0');
+                left.textContent = `${dt.toLocaleDateString()} ${dt.toLocaleTimeString()}${item.device ? ' · ' + item.device : ''}`;
+                right.textContent = `${item.avg !== null ? item.avg.toFixed(1) + ' dB' : '-- dB'} · ${mm}:${ss}`;
+                li.appendChild(left);
+                li.appendChild(right);
+                historyListEl.appendChild(li);
+            });
+        }
+
+        function saveHistory() {
+            try { localStorage.setItem('noiseMeterHistory', JSON.stringify(history.slice(0, 100))); } catch(e) {}
+        }
+
+        function clearHistory() {
+            history = [];
+            saveHistory();
+            renderHistory();
+            clearHistoryBtn.disabled = true;
+        }
+
         // ====== Спектр (АЧХ) ======
         function initFreqCanvas() {
             if (!freqCtx) return;
             const dpr = window.devicePixelRatio || 1;
             const rect = freqCanvas.getBoundingClientRect();
+            console.log('Canvas rect:', rect.width, 'x', rect.height);
+            console.log('Window size:', window.innerWidth, 'x', window.innerHeight);
+            console.log('Fullscreen:', !!document.fullscreenElement);
             freqCanvas.width = Math.floor(rect.width * dpr);
             freqCanvas.height = Math.floor(rect.height * dpr);
             freqCtx.setTransform(1, 0, 0, 1, 0, 0);
             freqCtx.scale(dpr, dpr);
+            // Градиент заливки столбцов
             freqGradient = freqCtx.createLinearGradient(0, 0, 0, rect.height);
             freqGradient.addColorStop(0, 'rgba(1,100,79,0.9)');
             freqGradient.addColorStop(1, 'rgba(1,100,79,0.2)');
@@ -1255,6 +1514,9 @@
             window.addEventListener('orientationchange', () => { setTimeout(initFreqCanvas, 100); });
             setTimeout(initFreqCanvas, 0);
         }
+        
+        // Включаем анимацию пульсации при первой загрузке
+        toggleBtn.classList.add('pulse-attention');
     </script>
 </body>
 </html>
