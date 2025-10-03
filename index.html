@@ -6,21 +6,23 @@
     <title>Шумомер</title>
     <style>
         :root {
-            --accent: #00d4aa;
-            --accent-dark: #00b894;
-            --accent-glow: rgba(0, 212, 170, 0.25);
-            --danger: #ff6b6b;
-            --danger-glow: rgba(255, 107, 107, 0.25);
-            --text-main: #1a1a2e;
+            --accent: #01644f;
+            --accent-dark: #014d3d;
+            --accent-glow: rgba(1, 100, 79, 0.25);
+            --danger: #e53935;
+            --danger-glow: rgba(229, 57, 53, 0.25);
+            --text-main: #2c3e40;
             --text-secondary: #6c757d;
-            --surface: #f8f9fa;
+            --surface: #ffffff;
             --surface-card: #ffffff;
-            --glass: rgba(255, 255, 255, 0.75);
-            --border: rgba(0, 0, 0, 0.06);
-            --shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-            --shadow-strong: 0 10px 40px rgba(0, 0, 0, 0.12);
-            --radius: 24px;
-            --radius-small: 16px;
+            --glass: rgba(255, 255, 255, 0.95);
+            --border: rgba(1, 100, 79, 0.12);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-strong: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --radius: 12px;
+            --radius-small: 8px;
+            --gray-border: #d1d5db;
+            --gray-bg: #f3f4f6;
         }
         * {
             -webkit-tap-highlight-color: transparent;
@@ -34,7 +36,7 @@
             min-height: 100dvh;
             height: 100dvh;
             margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
             color: var(--text-main);
             overflow: hidden;
         }
@@ -67,21 +69,19 @@
             gap: 8px;
             align-items: stretch;
             position: relative;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #ffffff;
         }
         .fs #spectrumWrap { 
             grid-area: graph; 
             position: relative; 
             padding: 20px !important; 
-            border: 1px solid rgba(255, 255, 255, 0.18) !important; 
+            border: 2px solid var(--gray-border) !important; 
             margin: 0 !important;
-            background: rgba(255, 255, 255, 0.1) !important;
-            backdrop-filter: blur(20px) !important;
-            -webkit-backdrop-filter: blur(20px) !important;
-            border-radius: 24px !important;
+            background: #ffffff !important;
+            border-radius: 12px !important;
             height: 100% !important;
             width: 100% !important;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
         }
         .fs #freqCanvas { height: 100% !important; width: 100% !important; max-height: none !important; min-height: none !important; }
 
@@ -94,18 +94,17 @@
             top: 32px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: clamp(12px, 1.4vw, 16px);
+            font-size: clamp(11px, 1.3vw, 15px);
             margin: 0;
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--text-secondary);
             pointer-events: none;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 8px 16px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
+            padding: 4px 8px;
+            border-radius: 0;
+            border: none;
             box-shadow: none;
             z-index: 1000;
-            font-weight: 500;
+            font-weight: 400;
         }
 
         /* Нижняя область - правильная структура */
@@ -136,28 +135,28 @@
             font-size: 75px;
             font-weight: 900;
             margin: 8px 0 0 0;
-            color: #ffffff;
+            color: var(--danger);
             line-height: 1.0;
-            text-shadow: 0 0 20px var(--danger-glow), 0 4px 12px rgba(0, 0, 0, 0.2);
+            text-shadow: none;
         }
         .fs #avgAfter { 
             text-align: left; 
             font-size: 75px;
             font-weight: 900;
             margin: 8px 0 0 0;
-            color: #ffffff;
+            color: var(--accent);
             line-height: 1.0;
-            text-shadow: 0 0 20px var(--accent-glow), 0 4px 12px rgba(0, 0, 0, 0.2);
+            text-shadow: none;
         }
         .fs #diff {
             text-align: left; 
             font-size: 45px;
             font-weight: 900;
             margin: 8px 0 0 0;
-            color: #ffffff;
+            color: var(--text-main);
             line-height: 1.0;
             white-space: nowrap;
-            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            text-shadow: none;
         }
         
         /* Правая колонка - управление */
@@ -174,18 +173,18 @@
         /* Секундомер - в центре, с анимацией */
         .fs #duration {
             font-size: 75px;
-            color: #ffffff;
+            color: var(--text-main);
             text-align: center;
             margin: auto 0;
             font-weight: 700;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, text-shadow 0.3s ease;
-            text-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+            text-shadow: none;
         }
         
         .fs #duration.pulse {
             transform: scale(1.3);
             opacity: 1;
-            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5), 0 4px 20px rgba(0, 0, 0, 0.3);
+            text-shadow: none;
         }
 
         /* Кнопки внизу */
@@ -200,21 +199,23 @@
         .fs button { 
             font-size: 22px;
             padding: 18px 32px; 
-            border-radius: 16px;
+            border-radius: 12px;
             width: 220px;
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            background: var(--accent);
             color: #ffffff;
-            border: none;
+            border: 2px solid var(--accent);
             font-weight: 700;
             text-transform: uppercase;
-            box-shadow: 0 8px 24px rgba(0, 212, 170, 0.3), 0 4px 12px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 2px 8px rgba(1, 100, 79, 0.2);
+            transition: all 0.2s ease;
             letter-spacing: 0.5px;
         }
         
         .fs button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(0, 212, 170, 0.4), 0 6px 16px rgba(0, 0, 0, 0.15);
+            background: var(--accent-dark);
+            border-color: var(--accent-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(1, 100, 79, 0.25);
         }
         
         .fs button:active {
@@ -236,10 +237,15 @@
             font-size: 28px;
             padding: 14px 28px;
             border: 2px solid var(--accent);
-            background: #ffffff;
-            color: var(--accent);
+            background: var(--accent);
+            color: #ffffff;
             border-radius: 12px;
             cursor: pointer;
+            font-weight: 600;
+        }
+        #launchOverlay button:hover {
+            background: var(--accent-dark);
+            border-color: var(--accent-dark);
         }
         html:not(.fs) #launchOverlay { display: flex; }
         html:not(.fs) #app { display: none; }
@@ -402,8 +408,8 @@
         /* НОВЫЕ СТИЛИ ДЛЯ ПЛАНШЕТА С РАЗРЕШЕНИЕМ 2560x1600 */
         @media (min-width: 2000px) and (min-height: 1200px) and (orientation: landscape) {
             html, body { height: 100dvh; }
-            body { min-height: 100dvh; height: 100dvh; overflow: hidden; }
-            #app {
+            body { min-height: 100dvh; height: 100dvh; overflow: hidden; background: #ffffff; }
+            .fs #app {
                 width: 100vw;
                 height: 100dvh;
                 max-width: none;
@@ -420,41 +426,40 @@
                 gap: 8px;
                 align-items: stretch;
                 position: relative;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: #ffffff;
             }
             h1 { display: none; }
-            #status {
+            .fs #status {
                 grid-area: graph;
                 position: absolute;
-                top: 8px;
+                top: 32px;
                 left: 50%;
                 transform: translateX(-50%);
                 text-align: center;
-                font-size: clamp(12px, 1.4vw, 18px);
+                font-size: clamp(11px, 1.3vw, 15px);
                 background: transparent;
-                color: rgba(72, 98, 103, 0.6);
+                color: var(--text-secondary);
                 padding: 4px 8px;
                 border-radius: 0;
                 box-shadow: none;
                 z-index: 1000;
+                font-weight: 400;
             }
             .fs #spectrumWrap { 
                 grid-area: graph; 
                 position: relative; 
                 padding: 20px !important; 
-                border: 1px solid rgba(255, 255, 255, 0.18) !important; 
+                border: 2px solid var(--gray-border) !important; 
                 margin: 0 !important;
-                background: rgba(255, 255, 255, 0.1) !important;
-                backdrop-filter: blur(20px) !important;
-                -webkit-backdrop-filter: blur(20px) !important;
-                border-radius: 24px !important;
+                background: #ffffff !important;
+                border-radius: 12px !important;
                 height: 100% !important;
                 width: 100% !important;
-                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15) !important;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
             }
             .fs #freqCanvas { height: 100% !important; max-height: none !important; min-height: none !important; width: 100% !important; }
             
-            .bottom-area {
+            .fs .bottom-area {
                 grid-area: bottom;
                 display: grid;
                 grid-template-columns: 56% 44%;
@@ -464,7 +469,7 @@
                 padding: 0 20px 10px 20px;
             }
             
-            .measurements-column {
+            .fs .measurements-column {
                 grid-column: 1;
                 display: flex;
                 flex-direction: column;
@@ -474,36 +479,36 @@
                 padding-bottom: 0;
             }
             
-            #avgBefore { 
+            .fs #avgBefore { 
                 text-align: left; 
                 font-size: 75px;
                 font-weight: 900;
                 margin: 8px 0 0 0;
-                color: #ffffff;
+                color: var(--danger);
                 line-height: 1.0;
-                text-shadow: 0 0 20px var(--danger-glow), 0 4px 12px rgba(0, 0, 0, 0.2);
+                text-shadow: none;
             }
-            #avgAfter { 
+            .fs #avgAfter { 
                 text-align: left; 
                 font-size: 75px;
                 font-weight: 900;
                 margin: 8px 0 0 0;
-                color: #ffffff;
+                color: var(--accent);
                 line-height: 1.0;
-                text-shadow: 0 0 20px var(--accent-glow), 0 4px 12px rgba(0, 0, 0, 0.2);
+                text-shadow: none;
             }
-            #diff {
+            .fs #diff {
                 text-align: left; 
                 font-size: 45px;
                 font-weight: 900;
                 margin: 8px 0 0 0;
-                color: #ffffff;
+                color: var(--text-main);
                 line-height: 1.0;
                 white-space: nowrap;
-                text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                text-shadow: none;
             }
             
-            .controls-panel {
+            .fs .controls-panel {
                 grid-column: 2;
                 display: flex;
                 flex-direction: column;
@@ -513,23 +518,23 @@
                 height: 100%;
             }
             
-            #duration {
+            .fs #duration {
                 font-size: 75px;
-                color: #ffffff;
+                color: var(--text-main);
                 text-align: center;
                 margin: auto 0;
                 font-weight: 700;
-                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease, text-shadow 0.3s ease;
-                text-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+                text-shadow: none;
             }
             
-            #duration.pulse {
+            .fs #duration.pulse {
                 transform: scale(1.3);
                 opacity: 1;
-                text-shadow: 0 0 30px rgba(255, 255, 255, 0.5), 0 4px 20px rgba(0, 0, 0, 0.3);
+                text-shadow: none;
             }
             
-            .row {
+            .fs .row {
                 display: flex;
                 flex-direction: row;
                 justify-content: center;
@@ -538,27 +543,29 @@
                 margin: 0;
             }
             
-            button { 
+            .fs button { 
                 font-size: 22px;
                 padding: 18px 32px; 
-                border-radius: 16px;
+                border-radius: 12px;
                 width: 220px;
-                background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+                background: var(--accent);
                 color: #ffffff;
-                border: none;
+                border: 2px solid var(--accent);
                 font-weight: 700;
                 text-transform: uppercase;
-                box-shadow: 0 8px 24px rgba(0, 212, 170, 0.3), 0 4px 12px rgba(0, 0, 0, 0.1);
-                transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                box-shadow: 0 2px 8px rgba(1, 100, 79, 0.2);
+                transition: all 0.2s ease;
                 letter-spacing: 0.5px;
             }
             
-            button:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 12px 32px rgba(0, 212, 170, 0.4), 0 6px 16px rgba(0, 0, 0, 0.15);
+            .fs button:hover {
+                background: var(--accent-dark);
+                border-color: var(--accent-dark);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(1, 100, 79, 0.25);
             }
             
-            button:active {
+            .fs button:active {
                 transform: translateY(0);
             }
         }
