@@ -138,9 +138,13 @@
             font-size: 45px;
             font-weight: 900;
             margin: 8px 0 0 0;
-            color: #585858;
+            color: #ffffff;
+            background-color: #585858;
+            padding: 10px 15px;
+            border-radius: 8px;
             line-height: 1.0;
             white-space: nowrap;
+            display: inline-block;
         }
         
         /* Правая колонка - управление */
@@ -240,8 +244,12 @@
         #diff {
             font-size: clamp(18px, 5vw, 32px);
             font-weight: 600;
-            color: #6b8488;
+            color: #ffffff;
+            background-color: #585858;
+            padding: 8px 12px;
+            border-radius: 6px;
             margin: 6px 0 14px 0;
+            display: inline-block;
         }
         #duration {
             font-size: 18px;
@@ -460,9 +468,13 @@
                 font-size: 45px;
                 font-weight: 900;
                 margin: 8px 0 0 0;
-                color: #585858;
+                color: #ffffff;
+                background-color: #585858;
+                padding: 10px 15px;
+                border-radius: 8px;
                 line-height: 1.0;
                 white-space: nowrap;
+                display: inline-block;
             }
             
             .controls-panel {
@@ -557,8 +569,12 @@
         #diff {
             font-size: 24px;
             font-weight: 700;
-            color: #585858;
+            color: #ffffff;
+            background-color: #585858;
+            padding: 8px 12px;
+            border-radius: 6px;
             text-align: right;
+            display: inline-block;
         }
         
         #duration {
@@ -579,7 +595,7 @@
     <div id="launchOverlay"><button id="launchBtn">ЗАПУСТИТЬ</button></div>
     <div id="app">
         <h1>Измерение шума</h1>
-        <div id="status">Готов к работе</div>
+        <div id="status">Измерение уровня шума</div>
         <div id="spectrumWrap">
             <canvas id="freqCanvas"></canvas>
         </div>
@@ -658,7 +674,6 @@
 
         // Проверка поддержки getUserMedia
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            statusElement.textContent = 'Микрофон недоступен';
             toggleBtn.disabled = true;
         }
 
@@ -832,7 +847,6 @@
                 // Убираем анимацию пульсации при нажатии Старт
                 toggleBtn.classList.remove('pulse-attention');
                 
-                statusElement.textContent = 'Подключение...';
                 // Новый цикл начинается, когда фаза ДО и нажали старт заново — очищаем старые графики/значения
                 if (measurementPhase === 'before') {
                     beforeSmoothed = null;
@@ -881,7 +895,6 @@
                 // Используем AnalyserNode для получения данных
                 processAudio();
 
-                statusElement.textContent = measurementPhase === 'before' ? 'Измерение ДО...' : 'Измерение с MultiFRAME...';
                 toggleBtn.disabled = true;
                 
                 // Запускаем белый шум на время измерения
@@ -917,7 +930,6 @@
                 // Больше не обновляем список устройств — фиксируемся на устройстве по умолчанию
             } catch (err) {
                 console.error('Ошибка:', err);
-                statusElement.textContent = 'Ошибка доступа к микрофону';
             }
         }
 
@@ -1022,12 +1034,11 @@
             // Останавливаем белый шум
             stopWhiteNoise();
             
-            statusElement.textContent = 'Остановлено';
             // Определяем следующий шаг для кнопки
             if (measurementPhase === 'before') {
-                toggleBtn.textContent = 'Старт (после)';
+                toggleBtn.textContent = 'Старт';
             } else {
-                toggleBtn.textContent = 'Старт (новый цикл)';
+                toggleBtn.textContent = 'Старт';
             }
             toggleBtn.disabled = false;
             toggleBtn.classList.remove('stop');
@@ -1077,12 +1088,13 @@
             // Переключаем фазу и управляем подписями кнопок
             if (measurementPhase === 'before') {
                 measurementPhase = 'after';
-                toggleBtn.textContent = 'Старт (после)';
+                toggleBtn.textContent = 'Старт';
                 resetBtn.textContent = 'Стоп';
+                toggleBtn.style.display = 'inline-block';
             } else {
                 measurementPhase = 'before';
-                // Второе завершение — предлагаем начать заново и сбросить
-                toggleBtn.textContent = 'Заново';
+                // Второе завершение — скрываем кнопку "Заново" и оставляем только "Завершить"
+                toggleBtn.style.display = 'none';
                 resetBtn.textContent = 'Завершить';
             }
         }
@@ -1117,10 +1129,11 @@
             avgAfterEl.textContent = 'После: -- dB';
             diffElement.textContent = 'Разница: -- dB';
             durationElement.textContent = `${measurementLimitSec} секунд`;
-            statusElement.textContent = 'Готов к работе';
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
             toggleBtn.disabled = false; // гарантируем, что старт снова активен
+            toggleBtn.style.display = 'inline-block'; // показываем кнопку снова
+            resetBtn.textContent = 'Стоп';
             // Включаем анимацию пульсации для привлечения внимания
             toggleBtn.classList.add('pulse-attention');
             // Очистка графика
