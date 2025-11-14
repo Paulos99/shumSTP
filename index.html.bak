@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MultiFRAME Демо - Шумомер</title>
+    <title>Шумомер</title>
     <meta name="theme-color" content="#01644f">
     <link rel="manifest" href="/multiframe-noisemeter/manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="/multiframe-noisemeter/icon-192.png">
@@ -232,7 +232,6 @@
             margin: 20px 0;
             font-size: 18px;
             color: #486267;
-            text-align: center;
         }
         #avg {
             font-size: clamp(28px, 6vw, 48px);
@@ -261,9 +260,6 @@
             font-size: 18px;
             color: #233538;
             margin: 6px 0;
-        }
-        #duration.hidden {
-            display: none;
         }
         /* АЧХ */
         #spectrumWrap {
@@ -923,7 +919,7 @@
         <button id="installPwaBtn" style="display:none; padding:10px 14px; font-size:14px; border-radius:8px; border:1px solid rgba(1,100,79,0.3); background:#fff; color:#01644f;">Установить приложение</button>
     </div>
     <div id="app">
-        <h1>Измерение шума (Демо)</h1>
+        <h1>Измерение шума</h1>
         <div id="status">Измерение уровня шума</div>
         <div id="spectrumWrap">
             <canvas id="freqCanvas"></canvas>
@@ -936,7 +932,7 @@
                 <div id="avg" style="display:none">Среднее: -- dB</div>
             </div>
             <div class="controls-panel">
-                <div id="duration" class="hidden"></div>
+                <div id="duration">10 секунд</div>
                 <div class="row">
                     <button id="toggleBtn">Старт</button>
                     <button id="resetBtn">Стоп</button>
@@ -1035,21 +1031,6 @@
         const historyListEl = null;
         const clearHistoryBtn = null;
         const freqCanvas = document.getElementById('freqCanvas');
-
-        function showDuration(seconds) {
-            const value = String(seconds);
-            durationElement.textContent = value;
-            durationElement.setAttribute('data-prev', value);
-            durationElement.classList.remove('hidden');
-        }
-
-        function hideDuration() {
-            durationElement.textContent = '';
-            durationElement.removeAttribute('data-prev');
-            durationElement.classList.add('hidden');
-        }
-
-        hideDuration();
         
         // Элементы калибровки
         const calibrationBtn = document.getElementById('calibrationBtn');
@@ -1921,7 +1902,6 @@
             }
             // «Сброс»: полностью очищает измерения и графики, но ничего не запускает
             // Полный сброс обоих измерений и графиков
-            hideDuration();
             foreverBeforeSumRms2 = 0;
             foreverBeforeCountFrames = 0;
             foreverAfterSumRms2 = 0;
@@ -1995,79 +1975,49 @@
                 const selectedDeviceId = undefined;
                 deviceLabel = '';
 
-                // Сброс накопителей для нового замера (до проверки режима)
+                // Запрашиваем доступ к микрофону
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        // deviceId не указываем, чтобы взять устройство по умолчанию
+                        deviceId: undefined,
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                // Создаем AudioContext
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 4096;
+                analyser.smoothingTimeConstant = 0.5;
+                analyser.minDecibels = -100;
+                analyser.maxDecibels = -20;
+                sampleRate = audioContext.sampleRate || sampleRate;
+                currentFftSize = analyser.fftSize;
+
+                microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+
+                // Используем AnalyserNode для получения данных
+                processAudio();
+
+                toggleBtn.disabled = true;
+                
+                // Запускаем белый шум на время измерения
+                startWhiteNoise();
+                
+
+                // Сброс накопителей для нового замера
                 sumRms2 = 0;
                 countFrames = 0;
                 avgElement.textContent = 'Среднее: -- dB';
-                showDuration(measurementLimitSec);
+                durationElement.textContent = `${measurementLimitSec}`;
+                durationElement.setAttribute('data-prev', measurementLimitSec);
                 diffElement.textContent = 'Разница: -- dB';
                 startTimeMs = Date.now();
                 endTimeMs = startTimeMs + measurementLimitSec * 1000;
                 isMeasuring = true;
-                
-                // Инициализируем канвас спектра под экран
-                initFreqCanvas();
-                // Сброс буфера спектров
-                spectrumBuffer = [];
-                currentSmoothed = null;
-
-                // Проверяем, включен ли режим симуляции
-                if (DEMO_MODE) {
-                    // Режим симуляции: не используем реальный микрофон
-                    // Создаем фиктивный AudioContext для совместимости
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    sampleRate = audioContext.sampleRate || sampleRate;
-                    currentFftSize = 2048;
-                    
-                    // Инициализируем накопители для симуляции
-                    if (measurementPhase === 'before') {
-                        foreverBeforeSumRms2 = 0;
-                        foreverBeforeCountFrames = 0;
-                        foreverBeforeSpecSum = null;
-                    } else {
-                        foreverAfterSumRms2 = 0;
-                        foreverAfterCountFrames = 0;
-                        foreverAfterSpecSum = null;
-                    }
-                    
-                    // Запускаем симуляцию измерения
-                    simulateMeasurement();
-                } else {
-                    // Реальный режим: используем микрофон
-                    // Запрашиваем доступ к микрофону
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        audio: {
-                            // deviceId не указываем, чтобы взять устройство по умолчанию
-                            deviceId: undefined,
-                            echoCancellation: false,
-                            noiseSuppression: false,
-                            autoGainControl: false
-                        }
-                    });
-
-                    // Создаем AudioContext
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    analyser = audioContext.createAnalyser();
-                    analyser.fftSize = 4096;
-                    analyser.smoothingTimeConstant = 0.5;
-                    analyser.minDecibels = -100;
-                    analyser.maxDecibels = -20;
-                    sampleRate = audioContext.sampleRate || sampleRate;
-                    currentFftSize = analyser.fftSize;
-
-                    microphone = audioContext.createMediaStreamSource(stream);
-                    microphone.connect(analyser);
-
-                    // Используем AnalyserNode для получения данных
-                    processAudio();
-                }
-
-                toggleBtn.disabled = true;
-                
-                // Запускаем белый шум на время измерения (только в реальном режиме)
-                if (!DEMO_MODE) {
-                    startWhiteNoise();
-                }
                 // Убираем выделение среднего при новом замере
                 avgElement.classList.remove('highlight');
                 // Инициализируем целевую строку средней в зависимости от фазы
@@ -2076,6 +2026,11 @@
                 } else {
                     avgAfterEl.textContent = 'После: -- dB';
                 }
+                // Инициализируем канвас спектра под экран
+                initFreqCanvas();
+                // Сброс буфера спектров
+                spectrumBuffer = [];
+                currentSmoothed = null;
                 // Если начинаем ПОСЛЕ, не трогаем avgBefore и beforePeaks
 
                 // Обновляем список устройств при изменении
@@ -2128,10 +2083,10 @@
                     else avgAfterEl.textContent = `После: ${avgDisplayed.toFixed(1)} dB`;
                     const elapsed = Math.floor((Date.now() - startTimeMs) / 1000);
                     const remaining = Math.max(0, measurementLimitSec - elapsed);
-                    const remainingStr = String(remaining);
                     const prevRemaining = durationElement.getAttribute('data-prev');
-                    if (prevRemaining !== remainingStr) {
-                        showDuration(remainingStr);
+                    if (prevRemaining !== String(remaining)) {
+                        durationElement.textContent = `${remaining}`;
+                        durationElement.setAttribute('data-prev', remaining);
                         // Анимация пульсации
                         durationElement.classList.remove('pulse');
                         void durationElement.offsetWidth; // trigger reflow
@@ -2214,11 +2169,6 @@
         }
 
         function stopMeter() {
-            // Останавливаем симуляцию если она запущена
-            if (demoSimulationRafId) {
-                cancelAnimationFrame(demoSimulationRafId);
-                demoSimulationRafId = null;
-            }
             if (rafId) {
                 cancelAnimationFrame(rafId);
                 rafId = null;
@@ -2246,7 +2196,6 @@
             toggleBtn.disabled = false;
             toggleBtn.classList.remove('stop');
             deviceList.style.display = 'none';
-            hideDuration();
 
             // Сбрасываем флаг измерения ДО обработки итогов, чтобы живая линия не рисовалась
             const wasMeasuring = isMeasuring;
@@ -2360,7 +2309,7 @@
             avgBeforeEl.textContent = 'До: -- dB';
             avgAfterEl.textContent = 'После: -- dB';
             diffElement.textContent = 'Разница: -- dB';
-            hideDuration();
+            durationElement.textContent = `${measurementLimitSec} секунд`;
             toggleBtn.textContent = 'Старт';
             toggleBtn.classList.remove('stop');
             toggleBtn.disabled = false; // гарантируем, что старт снова активен
@@ -2547,40 +2496,6 @@
             }
             return out;
         }
-        
-        // Генерация демонстрационного спектра для заданного уровня в дБ
-        function generateDemoSpectrum(targetDb, bins) {
-            const out = new Uint8Array(bins);
-            const MAX_DB = 90;
-            const MIN_DB = 40;
-            // Преобразуем targetDb в нормализованное значение (0-1) для графика
-            // 90 дБ = 1.0 (верх графика), 40 дБ = 0.0 (низ графика)
-            const normalizedTarget = (targetDb - MIN_DB) / (MAX_DB - MIN_DB);
-            // Преобразуем в значение для спектра (0-255), но с учетом что график масштабируется
-            // Используем более высокие значения, чтобы после нормализации получить нужный уровень
-            const baseValue = Math.round(normalizedTarget * 220 + 30); // 30-250 для реалистичности
-            
-            for (let i = 0; i < bins; i++) {
-                // Создаем реалистичный спектр с вариациями по частотам
-                const freq = (i / bins) * (sampleRate / 2);
-                let variation = 1.0;
-                
-                // Добавляем реалистичные вариации: больше энергии в средних частотах
-                if (freq >= 200 && freq <= 2000) {
-                    variation = 1.0 + 0.12 * Math.sin((freq - 200) / 1800 * Math.PI * 2);
-                } else if (freq < 200) {
-                    variation = 0.75 + 0.25 * (freq / 200);
-                } else if (freq > 2000) {
-                    variation = 1.0 - 0.15 * Math.min(1, (freq - 2000) / 8000);
-                }
-                
-                // Добавляем небольшие случайные вариации для реалистичности
-                const randomVar = 0.92 + Math.random() * 0.16;
-                const value = Math.round(baseValue * variation * randomVar);
-                out[i] = Math.max(0, Math.min(255, value));
-            }
-            return out;
-        }
 
         function drawFrequencyResponse(freqArray) {
             if (!freqCtx) return;
@@ -2611,27 +2526,15 @@
                 statusElement.style.top = '8px';
             } catch(e) {}
 
-            // Максимальное значение графика в дБ (для демонстрации)
-            const MAX_DB = 90;
-            const MIN_DB = 40; // Минимальное значение для масштабирования
-            
-            // Рисуем горизонтальные линии уровня с подписями в дБ
+            // Сначала рисуем горизонтальные линии уровня для плавности восприятия
             freqCtx.strokeStyle = 'rgba(1,100,79,0.06)';
             freqCtx.lineWidth = 1;
-            freqCtx.fillStyle = '#6b8488';
-            freqCtx.font = '11px Arial';
-            const dbLevels = [40, 50, 60, 70, 80, 90];
-            for (let i = 0; i < dbLevels.length; i++) {
-                const db = dbLevels[i];
-                // Масштабируем: 90 дБ = верх (0), 40 дБ = низ (height)
-                const normalizedDb = (db - MIN_DB) / (MAX_DB - MIN_DB);
-                const y = height - (normalizedDb * (height - 30)) - 15;
+            for (let i = 1; i <= 4; i++) {
+                const y = (height / 5) * i;
                 freqCtx.beginPath();
                 freqCtx.moveTo(0, y);
                 freqCtx.lineTo(width, y);
                 freqCtx.stroke();
-                // Подпись уровня в дБ слева
-                freqCtx.fillText(`${db} дБ`, 5, y - 3);
             }
 
             // Рисуем вертикальную сетку (более тонко и нежно)
@@ -2657,7 +2560,6 @@
             }
 
             // Вспомогательная функция: выборка и нормализация величины по частоте
-            // Теперь масштабируется относительно MAX_DB (90 дБ)
             function getNormAtFreq(data, f) {
                 const bin = Math.min(bins - 1, Math.max(0, Math.round((f / (sampleRate / 2)) * (bins - 1))));
                 let v = data[bin] / 255;
@@ -2665,14 +2567,11 @@
                 const t = (Math.log10(f) - logMin) / (logMax - logMin);
                 const hfGain = 0.85 + 0.3 * t;
                 let vDraw = Math.min(1, v * hfGain);
-                // Масштабируем относительно MAX_DB: если значение соответствует 90 дБ, оно должно быть наверху
-                // Для демонстрации: значения масштабируются так, чтобы 90 дБ = 1.0, а меньшие значения пропорционально ниже
-                return Math.min(0.95, vDraw);
+                return Math.min(0.9, vDraw);
             }
 
             // Рисование плавной линии по лог-шкале частоты
-            // Теперь масштабируется относительно MAX_DB (90 дБ) и MIN_DB (40 дБ)
-            function drawSmoothLine(color, data, targetDb = null) {
+            function drawSmoothLine(color, data) {
                 const numPts = 160; // больше точек для плавности
                 const topPad = 20;
                 const usableH = height - 30;
@@ -2684,29 +2583,7 @@
                     const t = i / (numPts - 1);
                     const f = Math.pow(10, logMin + t * (logMax - logMin));
                     const x = freqToX(f);
-                    let n;
-                    
-                    // Если указан targetDb, используем его напрямую для демонстрации
-                    if (targetDb !== null) {
-                        // Преобразуем targetDb в нормализованное значение (0-1)
-                        // 90 дБ = 1.0 (верх), 40 дБ = 0.0 (низ)
-                        const normalizedTarget = (targetDb - MIN_DB) / (MAX_DB - MIN_DB);
-                        // Добавляем небольшие вариации по частотам для реалистичности
-                        let freqVariation = 1.0;
-                        if (f >= 200 && f <= 2000) {
-                            freqVariation = 1.0 + 0.08 * Math.sin((f - 200) / 1800 * Math.PI * 2);
-                        } else if (f < 200) {
-                            freqVariation = 0.85 + 0.15 * (f / 200);
-                        } else if (f > 2000) {
-                            freqVariation = 1.0 - 0.1 * Math.min(1, (f - 2000) / 8000);
-                        }
-                        n = normalizedTarget * freqVariation;
-                        n = Math.max(0, Math.min(0.95, n));
-                    } else {
-                        // Обычный режим: используем данные
-                        n = getNormAtFreq(data, f);
-                    }
-                    
+                    const n = getNormAtFreq(data, f);
                     const y = height - (n * usableH) - topPad;
                     pts.push({ x, y });
                 }
@@ -2751,14 +2628,11 @@
             }
 
             // В статике рисуем ДО под ПОСЛЕ, чтобы зелёная была сверху
-            // Демонстрационный режим: используем фиксированные значения
             if (beforeSmoothed && beforeSmoothed.length === bins) {
-                // Для демонстрации: 82.1 дБ
-                drawSmoothLine('rgba(229,57,53,0.9)', beforeSmoothed, 82.1);
+                drawSmoothLine('rgba(229,57,53,0.9)', beforeSmoothed);
             }
             if (afterSmoothed && afterSmoothed.length === bins) {
-                // Для демонстрации: 69.3 дБ
-                drawSmoothLine('rgba(1,100,79,0.95)', afterSmoothed, 69.3);
+                drawSmoothLine('rgba(1,100,79,0.95)', afterSmoothed);
             }
 
             // Теперь наносим риски и подписи поверх графиков
@@ -2810,185 +2684,6 @@
         
         // Включаем анимацию пульсации при первой загрузке
         toggleBtn.classList.add('pulse-attention');
-        
-        // ====== РЕЖИМ СИМУЛЯЦИИ ИЗМЕРЕНИЙ ======
-        // Флаг для включения симуляции вместо реальных измерений
-        const DEMO_MODE = true;
-        const DEMO_TARGET_BEFORE = 82.1; // Целевое значение для фазы "ДО"
-        const DEMO_TARGET_AFTER = 69.3;   // Целевое значение для фазы "После"
-        
-        // Переменные для симуляции
-        let demoSimulationRafId = null;
-        let demoStartValue = null; // Начальное значение для плавного приближения
-        let demoCurrentProgress = 0; // Прогресс измерения (0..1)
-        
-        // Функция симуляции процесса измерения
-        function simulateMeasurement() {
-            if (!isMeasuring) return;
-            
-            const bufferLength = 2048; // Стандартное количество бинов
-            const freqArray = new Uint8Array(bufferLength);
-            const floatDbArray = new Float32Array(bufferLength);
-            
-            // Вычисляем прогресс измерения (0..1)
-            const elapsed = (Date.now() - startTimeMs) / 1000;
-            demoCurrentProgress = Math.min(1, elapsed / measurementLimitSec);
-            
-            // Определяем целевое значение в зависимости от фазы
-            const targetDb = measurementPhase === 'before' ? DEMO_TARGET_BEFORE : DEMO_TARGET_AFTER;
-            
-            // Плавное приближение к целевому значению
-            // В начале измерения значение ниже, постепенно приближается к целевому
-            // Используем экспоненциальное приближение для более реалистичного поведения
-            const initialOffset = -8; // Начальное смещение в дБ
-            const progressSmooth = 1 - Math.exp(-demoCurrentProgress * 3); // Экспоненциальное приближение
-            const currentTargetDb = targetDb + initialOffset * (1 - progressSmooth);
-            
-            // Добавляем небольшие случайные флуктуации для реалистичности
-            // Флуктуации уменьшаются по мере приближения к целевому значению
-            const noiseAmplitude = 1.2 * (1 - progressSmooth * 0.7); // Уменьшаем шум со временем
-            const noise = (Math.random() - 0.5) * noiseAmplitude;
-            const simulatedDb = currentTargetDb + noise;
-            
-            // Преобразуем дБ в линейную мощность для расчетов
-            const targetPower = Math.pow(10, (simulatedDb - 100) / 10);
-            
-            // Обновляем накопители
-            if (measurementPhase === 'before') {
-                foreverBeforeSumRms2 += targetPower;
-                foreverBeforeCountFrames += 1;
-            } else {
-                foreverAfterSumRms2 += targetPower;
-                foreverAfterCountFrames += 1;
-            }
-            
-            // Вычисляем текущее среднее значение
-            const foreverMeanPowerPhase = (measurementPhase === 'before')
-                ? (foreverBeforeSumRms2 / Math.max(1, foreverBeforeCountFrames))
-                : (foreverAfterSumRms2 / Math.max(1, foreverAfterCountFrames));
-            const avgDisplayed = foreverMeanPowerPhase > 0 ? 10 * Math.log10(foreverMeanPowerPhase) + 100 : 0;
-            
-            // Обновляем отображение значений
-            if (measurementPhase === 'before') {
-                avgBeforeEl.textContent = `До: ${avgDisplayed.toFixed(1)} dB`;
-            } else {
-                avgAfterEl.textContent = `После: ${avgDisplayed.toFixed(1)} dB`;
-            }
-            
-            // Обновляем секундомер
-            const remaining = Math.max(0, measurementLimitSec - elapsed);
-            const remainingStr = String(Math.ceil(remaining));
-            const prevRemaining = durationElement.getAttribute('data-prev');
-            if (prevRemaining !== remainingStr) {
-                showDuration(remainingStr);
-                durationElement.classList.remove('pulse');
-                void durationElement.offsetWidth;
-                durationElement.classList.add('pulse');
-                setTimeout(() => {
-                    durationElement.classList.remove('pulse');
-                }, 300);
-            }
-            
-            // Генерируем реалистичный спектр для графика
-            const nyquistLocal = sampleRate / 2;
-            for (let i = 0; i < bufferLength; i++) {
-                const freq = (i / bufferLength) * nyquistLocal;
-                
-                // Создаем реалистичный спектр с вариациями по частотам
-                let variation = 1.0;
-                if (freq >= 200 && freq <= 2000) {
-                    variation = 1.0 + 0.12 * Math.sin((freq - 200) / 1800 * Math.PI * 2);
-                } else if (freq < 200) {
-                    variation = 0.75 + 0.25 * (freq / 200);
-                } else if (freq > 2000) {
-                    variation = 1.0 - 0.15 * Math.min(1, (freq - 2000) / 8000);
-                }
-                
-                // Добавляем случайные вариации
-                const randomVar = 0.92 + Math.random() * 0.16;
-                
-                // Масштабируем относительно целевого значения
-                const normalizedTarget = (targetDb - 40) / (90 - 40); // 40-90 дБ диапазон
-                const baseValue = normalizedTarget * 200 + 30;
-                const value = Math.round(baseValue * variation * randomVar);
-                
-                freqArray[i] = Math.max(0, Math.min(255, value));
-                
-                // Для floatDbArray (используется в computeLAeqFrameFromFloatDb)
-                // Преобразуем обратно в дБ
-                const dbValue = 20 * Math.log10(Math.max(0.0001, value / 255)) + 20;
-                floatDbArray[i] = dbValue;
-            }
-            
-            // Вычисляем LAeq для симуляции
-            const framePower = computeLAeqFrameFromFloatDb(floatDbArray, sampleRate);
-            sumRms2 += framePower;
-            countFrames += 1;
-            
-            // Накопление спектров для FOREVER
-            if (measurementPhase === 'before') {
-                if (!foreverBeforeSpecSum || foreverBeforeSpecSum.length !== bufferLength) {
-                    foreverBeforeSpecSum = new Float64Array(bufferLength);
-                }
-                for (let i = 0; i < bufferLength; i++) {
-                    const n = freqArray[i] / 255;
-                    if (n <= 0) continue;
-                    let dB = 20 * Math.log10(n);
-                    const freq = (i / bufferLength) * nyquistLocal;
-                    dB += getAWeighting(freq);
-                    const nCorr = Math.pow(10, dB / 20);
-                    const pCorr = nCorr * nCorr;
-                    foreverBeforeSpecSum[i] += pCorr;
-                }
-            } else {
-                if (!foreverAfterSpecSum || foreverAfterSpecSum.length !== bufferLength) {
-                    foreverAfterSpecSum = new Float64Array(bufferLength);
-                }
-                for (let i = 0; i < bufferLength; i++) {
-                    const n = freqArray[i] / 255;
-                    if (n <= 0) continue;
-                    let dB = 20 * Math.log10(n);
-                    const freq = (i / bufferLength) * nyquistLocal;
-                    dB += getAWeighting(freq);
-                    const nCorr = Math.pow(10, dB / 20);
-                    const pCorr = nCorr * nCorr;
-                    foreverAfterSpecSum[i] += pCorr;
-                }
-            }
-            
-            // Обновляем разницу при фазе "После"
-            if (measurementPhase === 'after' && avgBeforeVal !== null) {
-                const diffDb = avgDisplayed - avgBeforeVal;
-                const powerRatio = Math.pow(10, diffDb / 10);
-                const percent = (powerRatio - 1) * 100;
-                const sign = percent >= 0 ? '+' : '';
-                diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
-            }
-            
-            // Сглаживание спектра для визуализации
-            if (!currentSmoothed || currentSmoothed.length !== bufferLength) {
-                currentSmoothed = new Uint8Array(bufferLength);
-            }
-            for (let i = 0; i < bufferLength; i++) {
-                currentSmoothed[i] = freqArray[i];
-            }
-            currentSmoothed = smoothSpectrum(currentSmoothed);
-            
-            // Применяем визуальный фильтр
-            const visualData = applyVisualHighPassFilter(currentSmoothed);
-            
-            // Рисуем спектр
-            drawFrequencyResponse(visualData);
-            
-            // Проверяем, не закончилось ли время измерения
-            if (Date.now() >= endTimeMs) {
-                stopMeter();
-                return;
-            }
-            
-            // Продолжаем симуляцию
-            demoSimulationRafId = requestAnimationFrame(simulateMeasurement);
-        }
     </script>
 </body>
 </html>
