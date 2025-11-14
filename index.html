@@ -2019,38 +2019,90 @@
                     // На этапе "ПОСЛЕ" в демо-режиме генерируем данные на основе реальных "ДО"
                     if (beforeSmoothed && avgBeforeVal !== null) {
                         const bins = beforeSmoothed.length;
-                        const demoAfterData = generateDemoAfterData(beforeSmoothed, bins, sampleRate);
-                        afterSmoothed = demoAfterData;
                         
-                        // Устанавливаем средний уровень для "ПОСЛЕ" (на 11.6 дБ меньше реального "ДО")
-                        avgAfterVal = avgBeforeVal - 11.6;
-                        avgAfterVal = Number(avgAfterVal.toFixed(1));
+                        // Инициализируем канвас спектра
+                        initFreqCanvas();
                         
-                        // Обновляем разницу
-                        const diffDb = avgAfterVal - avgBeforeVal;
-                        const powerRatio = Math.pow(10, diffDb / 10);
-                        const percent = (powerRatio - 1) * 100;
-                        const sign = percent >= 0 ? '+' : '';
-                        diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
+                        // Запускаем белый шум
+                        startWhiteNoise();
                         
-                        // Отображаем данные
-                        avgAfterEl.textContent = `После: ${avgAfterVal.toFixed(1)} dB`;
+                        // Целевые данные "ПОСЛЕ"
+                        const targetAfterData = generateDemoAfterData(beforeSmoothed, bins, sampleRate);
+                        const targetAfterVal = avgBeforeVal - 11.6;
                         
-                        // Рисуем график
-                        drawFrequencyResponse(new Uint8Array(bins));
+                        // Начальные значения (равны "ДО")
+                        let currentAfterData = new Uint8Array(bins);
+                        for (let i = 0; i < bins; i++) {
+                            currentAfterData[i] = beforeSmoothed[i];
+                        }
+                        let currentAfterVal = avgBeforeVal;
                         
-                        // Имитируем измерение на 2 секунды
-                        showDuration('2');
+                        // Время начала анимации
                         startTimeMs = Date.now();
-                        endTimeMs = startTimeMs + 2000;
+                        endTimeMs = startTimeMs + measurementLimitSec * 1000;
                         isMeasuring = true;
-                        
-                        // Запускаем таймер для остановки
-                        setTimeout(() => {
-                            stopMeter();
-                        }, 2000);
-                        
+                        showDuration(measurementLimitSec);
                         toggleBtn.disabled = true;
+                        
+                        // Анимация плавного перехода
+                        const animateAfter = () => {
+                            if (!isMeasuring) return;
+                            
+                            const elapsed = Date.now() - startTimeMs;
+                            const progress = Math.min(1, elapsed / (measurementLimitSec * 1000));
+                            
+                            // Плавная интерполяция данных АЧХ
+                            for (let i = 0; i < bins; i++) {
+                                const start = currentAfterData[i];
+                                const end = targetAfterData[i];
+                                currentAfterData[i] = Math.round(start + (end - start) * progress);
+                            }
+                            
+                            // Плавная интерполяция значения дБ
+                            currentAfterVal = avgBeforeVal + (targetAfterVal - avgBeforeVal) * progress;
+                            
+                            // Обновляем отображение
+                            afterSmoothed = currentAfterData;
+                            avgAfterVal = Number(currentAfterVal.toFixed(1));
+                            avgAfterEl.textContent = `После: ${avgAfterVal.toFixed(1)} dB`;
+                            
+                            // Обновляем разницу
+                            if (avgBeforeVal !== null) {
+                                const diffDb = avgAfterVal - avgBeforeVal;
+                                const powerRatio = Math.pow(10, diffDb / 10);
+                                const percent = (powerRatio - 1) * 100;
+                                const sign = percent >= 0 ? '+' : '';
+                                diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
+                            }
+                            
+                            // Рисуем график
+                            drawFrequencyResponse(new Uint8Array(bins));
+                            
+                            // Обновляем таймер
+                            const remaining = Math.max(0, measurementLimitSec - Math.floor(elapsed / 1000));
+                            const remainingStr = String(remaining);
+                            const prevRemaining = durationElement.getAttribute('data-prev');
+                            if (prevRemaining !== remainingStr) {
+                                showDuration(remainingStr);
+                                durationElement.classList.remove('pulse');
+                                void durationElement.offsetWidth;
+                                durationElement.classList.add('pulse');
+                                setTimeout(() => {
+                                    durationElement.classList.remove('pulse');
+                                }, 300);
+                            }
+                            
+                            if (progress >= 1) {
+                                // Анимация завершена
+                                stopMeter();
+                            } else {
+                                // Продолжаем анимацию
+                                rafId = requestAnimationFrame(animateAfter);
+                            }
+                        };
+                        
+                        // Запускаем анимацию
+                        rafId = requestAnimationFrame(animateAfter);
                         return;
                     } else {
                         // Если нет данных "ДО", выходим из демо-режима или показываем ошибку
@@ -2657,24 +2709,26 @@
                 let beforeValue = beforeData[i] / 255;
                 let afterValue = beforeValue * baseReduction;
                 
-                // Ямы в диапазонах 200-500 Гц и 2000-8000 Гц (5-8 дБ)
+                // Ямы в диапазонах 200-500 Гц и 2400-10000 Гц (3-5 дБ, более плавные)
                 if (freq >= 200 && freq <= 500) {
                     // Плавная яма в центре диапазона (350 Гц)
                     const centerFreq = 350;
-                    const width = 300; // ±150 Гц
+                    const width = 400; // ±200 Гц для более плавного перехода
                     const distance = Math.abs(freq - centerFreq);
                     const depth = Math.max(0, 1 - (distance / width));
-                    const notchDepth = Math.pow(10, -(5 + depth * 3) / 20); // 5-8 дБ
+                    // Более плавная яма: 3-5 дБ вместо 5-8 дБ
+                    const notchDepth = Math.pow(10, -(3 + depth * 2) / 20); // 3-5 дБ
                     afterValue *= notchDepth;
                 }
                 
-                if (freq >= 2000 && freq <= 8000) {
-                    // Плавная яма в центре диапазона (5000 Гц)
-                    const centerFreq = 5000;
-                    const width = 6000; // ±3000 Гц
+                if (freq >= 2400 && freq <= 10000) {
+                    // Плавная яма в центре диапазона (6200 Гц)
+                    const centerFreq = 6200;
+                    const width = 8000; // ±4000 Гц для более плавного перехода
                     const distance = Math.abs(freq - centerFreq);
                     const depth = Math.max(0, 1 - (distance / width));
-                    const notchDepth = Math.pow(10, -(5 + depth * 3) / 20); // 5-8 дБ
+                    // Более плавная яма: 3-5 дБ вместо 5-8 дБ
+                    const notchDepth = Math.pow(10, -(3 + depth * 2) / 20); // 3-5 дБ
                     afterValue *= notchDepth;
                 }
                 
