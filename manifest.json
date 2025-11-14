@@ -1,7 +1,7 @@
 {
-  "name": "MultiFRAME Демо",
-  "short_name": "MultiFRAME Демо",
-  "description": "Демонстрационная версия: измерение уровня шума АЧХ с симуляцией",
+  "name": "MultiFRAME",
+  "short_name": "MultiFRAME",
+  "description": "Измерение уровня шума АЧХ",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
@@ -24,8 +24,6 @@
   ],
   "permissions": [
     "microphone"
-  ],
-  "version": "1.0.0-demo",
-  "version_name": "Демонстрационная версия с симуляцией измерений"
+  ]
 }
 
