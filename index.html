@@ -929,9 +929,6 @@
     </div>
     
     <div id="launchOverlay"><button id="launchBtn">ЗАПУСТИТЬ</button></div>
-    <div style="position:fixed; left:10px; bottom:10px; z-index:2000;">
-        <button id="installPwaBtn" style="display:none; padding:10px 14px; font-size:14px; border-radius:8px; border:1px solid rgba(1,100,79,0.3); background:#fff; color:#01644f;">Установить приложение</button>
-    </div>
     <div id="app">
         <h1>Измерение шума</h1>
         <div id="status">Измерение уровня шума</div>
@@ -971,25 +968,6 @@
             }
         })();
 
-        // Кастомная кнопка установки PWA
-        let deferredPrompt = null;
-        const installBtn = document.getElementById('installPwaBtn');
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'inline-block';
-        });
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            installBtn.disabled = true;
-            try {
-                await deferredPrompt.prompt();
-                await deferredPrompt.userChoice;
-            } catch(e) {}
-            installBtn.style.display = 'none';
-            deferredPrompt = null;
-            installBtn.disabled = false;
-        });
         // JavaScript код остается без изменений
         let audioContext = null;
         let analyser = null;
