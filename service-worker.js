@@ -1,4 +1,4 @@
-const CACHE_NAME = 'multiframe-noisemeter-demo-v4-20251114-100000';
+const CACHE_NAME = 'multiframe-noisemeter-demo-v5-20251114-102056';
 const urlsToCache = [
   './',
   './index.html',

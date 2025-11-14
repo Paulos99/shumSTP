@@ -2030,12 +2030,12 @@
                         const targetAfterData = generateDemoAfterData(beforeSmoothed, bins, sampleRate);
                         const targetAfterVal = avgBeforeVal - 11.6;
                         
-                        // Начальные значения (равны "ДО")
+                        // Начальные значения (равны 0 - снизу)
                         let currentAfterData = new Uint8Array(bins);
                         for (let i = 0; i < bins; i++) {
-                            currentAfterData[i] = beforeSmoothed[i];
+                            currentAfterData[i] = 0;
                         }
-                        let currentAfterVal = avgBeforeVal;
+                        let currentAfterVal = 0;
                         
                         // Время начала анимации
                         startTimeMs = Date.now();
@@ -2044,22 +2044,58 @@
                         showDuration(measurementLimitSec);
                         toggleBtn.disabled = true;
                         
+                        // Генератор случайных колебаний для каждой частоты
+                        const noiseGenerators = [];
+                        for (let i = 0; i < bins; i++) {
+                            noiseGenerators.push({
+                                phase: Math.random() * Math.PI * 2,
+                                speed: 0.1 + Math.random() * 0.2 // разная скорость для каждой частоты
+                            });
+                        }
+                        
                         // Анимация плавного перехода
                         const animateAfter = () => {
                             if (!isMeasuring) return;
                             
                             const elapsed = Date.now() - startTimeMs;
-                            const progress = Math.min(1, elapsed / (measurementLimitSec * 1000));
+                            const totalTime = measurementLimitSec * 1000;
+                            const progress = Math.min(1, elapsed / totalTime);
                             
-                            // Плавная интерполяция данных АЧХ
-                            for (let i = 0; i < bins; i++) {
-                                const start = currentAfterData[i];
-                                const end = targetAfterData[i];
-                                currentAfterData[i] = Math.round(start + (end - start) * progress);
+                            if (progress < 0.6) {
+                                // Фаза 1: 0-6 секунд - подъем от 0 до целевых значений
+                                const riseProgress = progress / 0.6; // 0..1 за 6 секунд
+                                
+                                // Плавная интерполяция данных АЧХ от 0 до целевых
+                                for (let i = 0; i < bins; i++) {
+                                    const target = targetAfterData[i];
+                                    currentAfterData[i] = Math.round(target * riseProgress);
+                                }
+                                
+                                // Плавная интерполяция значения дБ от 0 до целевого
+                                currentAfterVal = targetAfterVal * riseProgress;
+                            } else {
+                                // Фаза 2: 6-10 секунд - колебания ±0.2 дБ вокруг целевых значений
+                                const oscillationTime = (elapsed - 6000) / 1000; // время в секундах после 6 сек
+                                
+                                // Колебания для АЧХ (±0.2 дБ в амплитуде)
+                                const oscillationDb = 0.2 * Math.sin(oscillationTime * 2 * Math.PI * 0.5); // ~0.5 Гц
+                                const oscillationAmp = Math.pow(10, oscillationDb / 20); // конвертация дБ в амплитуду
+                                
+                                for (let i = 0; i < bins; i++) {
+                                    const gen = noiseGenerators[i];
+                                    gen.phase += gen.speed * 0.1;
+                                    const noise = Math.sin(gen.phase) * 0.1; // небольшие случайные колебания
+                                    const target = targetAfterData[i];
+                                    const baseValue = target;
+                                    // Добавляем колебания ±0.2 дБ
+                                    const oscillatedValue = baseValue * (1 + (oscillationAmp - 1) * (0.5 + noise * 0.5));
+                                    currentAfterData[i] = Math.max(0, Math.min(255, Math.round(oscillatedValue)));
+                                }
+                                
+                                // Колебания для значения дБ (±0.2 дБ)
+                                const dbNoise = 0.2 * Math.sin(oscillationTime * 2 * Math.PI * 0.3); // немного другая частота
+                                currentAfterVal = targetAfterVal + dbNoise;
                             }
-                            
-                            // Плавная интерполяция значения дБ
-                            currentAfterVal = avgBeforeVal + (targetAfterVal - avgBeforeVal) * progress;
                             
                             // Обновляем отображение
                             afterSmoothed = currentAfterData;
@@ -2093,7 +2129,18 @@
                             }
                             
                             if (progress >= 1) {
-                                // Анимация завершена
+                                // Анимация завершена - фиксируем на целевых значениях
+                                afterSmoothed = targetAfterData;
+                                avgAfterVal = Number(targetAfterVal.toFixed(1));
+                                avgAfterEl.textContent = `После: ${avgAfterVal.toFixed(1)} dB`;
+                                if (avgBeforeVal !== null) {
+                                    const diffDb = avgAfterVal - avgBeforeVal;
+                                    const powerRatio = Math.pow(10, diffDb / 10);
+                                    const percent = (powerRatio - 1) * 100;
+                                    const sign = percent >= 0 ? '+' : '';
+                                    diffElement.textContent = `Разница: ${diffDb.toFixed(1)} dB (${sign}${percent.toFixed(0)}%)`;
+                                }
+                                drawFrequencyResponse(new Uint8Array(bins));
                                 stopMeter();
                             } else {
                                 // Продолжаем анимацию
